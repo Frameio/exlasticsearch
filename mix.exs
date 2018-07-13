@@ -1,7 +1,7 @@
 defmodule Exlasticsearch.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.2"
 
   def project do
     [
@@ -41,7 +41,7 @@ defmodule Exlasticsearch.MixProject do
 
   defp docs() do
     [
-      main: "ExlasticSearch",
+      main: "readme",
       extras: ["README.md"],
       source_ref: "v#{@version}",
       source_url: "https://github.com/Frameio/exlasticsearch"

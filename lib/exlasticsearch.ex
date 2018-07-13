@@ -1,4 +1,4 @@
-defmodule Exlasticsearch do
+defmodule ExlasticSearch do
   @moduledoc """
   A collection of elasticsearch dsl's to make development simple.  The usage is meant to
   pair with existing ecto schema, like so:

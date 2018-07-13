@@ -1,4 +1,4 @@
-# Exlasticsearch
+# ExlasticSearch
 
 An elasticsearch dsls for mapping ecto models to elasticsearch mappings, along with elixir
 friendly query wrappers, response formatting and the like.
@@ -8,12 +8,12 @@ friendly query wrappers, response formatting and the like.
 ```elixir
 def deps do
   [
-    {:exlasticsearch, "~> 0.1.0"}
+    {:exlasticsearch, "~> 0.2.2"}
   ]
 end
 ```
 
-Docs are available on [hex](https://hexdocs.pm/exlasticsearch/0.1.0)
+Docs are available on [hex](https://hexdocs.pm/exlasticsearch/0.2.2)
 
 ## Usage
 
