@@ -13,6 +13,8 @@ def deps do
 end
 ```
 
+Docs are available on [hex](https://hexdocs.pm/exlasticsearch/0.1.0)
+
 ## Usage
 
 You can pair an ExlasticSearch.Model with an existing schema like:
