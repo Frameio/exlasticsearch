@@ -1,16 +1,19 @@
 defmodule Exlasticsearch.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [
       app: :exlasticsearch,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env),
       description: description(),
       package: package(),
-      deps: deps()
+      deps: deps(),
+      docs: docs()
     ]
   end
 
@@ -33,6 +36,15 @@ defmodule Exlasticsearch.MixProject do
       {:ecto, "~> 2.1.0"},
       {:scrivener_ecto, "~> 1.0"},
       {:ex_doc, ">= 0.0.0", only: :dev}
+    ]
+  end
+
+  defp docs() do
+    [
+      main: "ExlasticSearch",
+      extras: ["README.md"],
+      source_ref: "v#{@version}",
+      source_url: "https://github.com/Frameio/exlasticsearch"
     ]
   end
 

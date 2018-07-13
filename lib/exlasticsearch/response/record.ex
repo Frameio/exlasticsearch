@@ -1,4 +1,8 @@
 defmodule ExlasticSearch.Response.Record do
+  @moduledoc """
+  Elasticsearch record response structure.  `:_source` can contain a parsed
+  model result if properly specified
+  """
   use ExlasticSearch.Response
 
   schema do

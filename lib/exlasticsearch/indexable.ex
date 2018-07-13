@@ -1,6 +1,7 @@
 defprotocol ExlasticSearch.Indexable do
   @moduledoc """
-  Protocol for converting Ecto structs to ES-compatible maps
+  Protocol for converting Ecto structs to ES-compatible maps.  `ExlasticSearch.Repo` uses
+  this internally to effect any conversion prior to communicating with elasticsearch itself
   """
 
   @doc "ES record id"

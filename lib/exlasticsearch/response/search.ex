@@ -1,4 +1,7 @@
 defmodule ExlasticSearch.Response.Search do
+  @moduledoc """
+  Elasticsearch Search response structure
+  """
   use ExlasticSearch.Response
   alias ExlasticSearch.Response.Hits
 

@@ -1,6 +1,9 @@
 defmodule ExlasticSearch.Model do
   @moduledoc """
-  Base macro for generating elasticsearch modules.  It includes three primary macros:
+  Base macro for generating elasticsearch modules.  Is intended to be used in conjunction with a
+  Ecto model (although that is not strictly necessary).
+  
+  It includes three primary macros:
 
   * `indexes/2`
   * `settings/1`
@@ -49,6 +52,14 @@ defmodule ExlasticSearch.Model do
     end
   end
 
+  @doc """
+  Opens up index definition for the current model.  Will name the index and generate metadata
+  attributes for the index based on subsequent calls to `settings/1` and `mappings/2`.
+
+  Accepts
+  * `type` - the indexes type (and index name will be `type <> "s"`)
+  * `block` - the definition of the index
+  """
   defmacro indexes(type, block) do
     quote do
       Module.register_attribute(__MODULE__, :es_mappings, accumulate: true)
@@ -90,6 +101,9 @@ defmodule ExlasticSearch.Model do
   end
 
   defmodule SearchResult do
+    @moduledoc """
+    Wrapper for a models search result.  Used for response parsing
+    """
     defmacro __using__(_) do
       columns = __CALLER__.module.__mappings__()
       quote do
@@ -100,12 +114,23 @@ defmodule ExlasticSearch.Model do
     end
   end
 
+  @doc """
+  Adds a new mapping to the ES schema.  The type of the mapping will be inferred automatically, unless explictly set
+  in props.
+
+  Accepts:
+    * `name` - the name of the mapping
+    * `props` - is a map/kw list of ES mapping configuration (e.g. `search_analyzer: "my_search_analyzer", type: "text"`)
+  """
   defmacro mapping(name, props \\ []) do
     quote do
       ExlasticSearch.Model.__mapping__(__MODULE__, unquote(name), unquote(props))
     end
   end
 
+  @doc """
+  A map of index settings.  Structure is the same as specified by ES.
+  """
   defmacro settings(settings) do
     quote do
       def __es_settings__(), do: %{settings: unquote(settings)}
@@ -116,6 +141,9 @@ defmodule ExlasticSearch.Model do
     Module.put_attribute(mod, :es_mappings, {name, properties})
   end
 
+  @doc """
+  Converts a search result to `model`'s search result type
+  """
   def es_decode(source, model) do
     model.__es_decode_template__()
     |> do_decode(source)

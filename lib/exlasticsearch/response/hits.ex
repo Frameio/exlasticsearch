@@ -1,4 +1,7 @@
 defmodule ExlasticSearch.Response.Hits do
+  @moduledoc """
+  Elasticsearch hits response structure
+  """
   use ExlasticSearch.Response
 
   schema do

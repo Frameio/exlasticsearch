@@ -12,7 +12,7 @@ defmodule ExlasticSearch.Query do
 
   An ES query has 3 main clauses, must, should and filter.  Must and should are near equivalents
   except that must clauses will reject records that fail to match.  Filters require matches but do
-  not contribute to scoring, while must/should both do.
+  not contribute to scoring, while must/should both do.  Nesting queries within queries is also supported
 
   Currently the module only supports the boolean style of compound query, but we could add support
   for the others as need be.
@@ -35,34 +35,34 @@ defmodule ExlasticSearch.Query do
   @query_keys [:must, :should, :filter, :must_not]
 
   @doc """
-  Builds a match phrase query
+  Builds a match phrase query clause
   """
   @spec match_phrase(atom, binary, list) :: map
   def match_phrase(field, query, opts \\ []),
     do: %{match_phrase: %{field => Enum.into(opts, %{query: query})}}
 
   @doc """
-  Builds a match query
+  Builds a match query clause
   """
   @spec match(atom, binary) :: map
   def match(field, query), do: %{match: %{field => query}}
   def match(field, query, opts), do: %{match: %{field => Enum.into(opts, %{query: query})}}
 
   @doc """
-  Multimatch query
+  Multimatch query clause
   """
   @spec multi_match(atom, binary) :: map
   def multi_match(fields, query, opts \\ []),
     do: %{multi_match: Enum.into(opts, %{query: query, fields: fields, type: :best_fields})}
 
   @doc """
-  Term query
+  Term query clause
   """
   @spec term(atom, binary) :: map
   def term(field, term), do: %{term: %{field => term}}
 
   @doc """
-  Queries by id
+  ids query clause
   """
   @spec ids(list) :: map
   def ids(ids), do: %{ids: %{values: ids}}
@@ -75,43 +75,43 @@ defmodule ExlasticSearch.Query do
     do: %{query_string: Enum.into(opts, %{query: query})}
 
   @doc """
-  terms query
+  terms query clause
   """
   @spec terms(atom, binary) :: map
   def terms(field, terms), do: %{terms: %{field => terms}}
 
   @doc """
-  range query
+  range query clause
   """
   @spec range(atom, map) :: map
   def range(field, range), do: %{range: %{field => range}}
 
   @doc """
-  Appends a new filter clause to the running query
+  Appends a new filter scope to the running query
   """
   @spec filter(t, map) :: t
   def filter(%__MODULE__{filter: filters} = query, filter), do: %{query | filter: [filter | filters]}
 
   @doc """
-  Appends a new must clause to the runnning query
+  Appends a new must scope to the runnning query
   """
   @spec must(t, map) :: t
   def must(%__MODULE__{must: musts} = query, must), do: %{query | must: [must | musts]}
 
   @doc """
-  Appends a new should clause to the running query
+  Appends a new should scope to the running query
   """
   @spec should(t, map) :: t
   def should(%__MODULE__{should: shoulds} = query, should), do: %{query | should: [should | shoulds]}
 
   @doc """
-  Appends a new must_not clause to the running query
+  Appends a new must_not scope to the running query
   """
   @spec must_not(t, map) :: t
   def must_not(%__MODULE__{must_not: must_nots} = query, must_not), do: %{query | must_not: [must_not | must_nots]}
 
   @doc """
-  Adds a search clause to the ES query
+  Adds a sort clause to the ES query
   """
   @spec sort(t, binary | atom, binary) :: t
   def sort(%__MODULE__{sort: sorts} = query, field, direction \\ "asc"),

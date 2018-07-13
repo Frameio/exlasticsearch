@@ -1,7 +1,13 @@
 defmodule ExlasticSearch.Repo do
   @moduledoc """
   API executor for elasticsearch.  The generate pattern is to define a `ExlasticSearch.Model`
-  on an ecto model, then call any of these functions to manage the model
+  on an ecto model, then call any of these functions to manage the model.
+
+  To configure the url the repo points to, do:
+
+  ```
+  config :exlasticsearch, ExlasticSearch.Repo,
+    url: "https://elasticsearch.url.io:9200"
   """
   use Scrivener
   alias ExlasticSearch.{Indexable, Query, Response}
@@ -18,16 +24,25 @@ defmodule ExlasticSearch.Repo do
   def create_index(model),
     do: es_url() |> Index.create(model.__es_index__(), model.__es_settings__())
 
+  @doc """
+  Updates the index for `model`
+  """
   def update_index(model) do
     url = es_url() <> "/#{model.__es_index__()}/_settings"
     HTTP.put(url, Poison.encode!(model.__es_settings__()))
   end
 
+  @doc """
+  Close an index for `model`
+  """
   def close_index(model) do
     url = es_url() <> "/#{model.__es_index__()}/_close"
     HTTP.post(url, "")
   end
 
+  @doc """
+  open an index for `model`
+  """
   def open_index(model) do
     url = es_url() <> "/#{model.__es_index__()}/_open"
     HTTP.post(url, "")
@@ -60,6 +75,9 @@ defmodule ExlasticSearch.Repo do
     end
   end
 
+  @doc """
+  Refreshes `model`'s index
+  """
   def refresh(model) do
     es_url() |> Index.refresh(model.__es_index__())
   end
@@ -86,7 +104,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Creates a call to `search/3` using the data in `query` and any provided search opts
+  Creates a call to `search/3` by realizing `query` (using `Exlasticsearch.Query.realize/1`) and any provided search opts
   """
   @spec search(Query.t, list) :: response
   def search(%Query{queryable: model} = query, params), do: search(model, Query.realize(query), params)
@@ -111,10 +129,14 @@ defmodule ExlasticSearch.Repo do
 
 
   @doc """
-  Generates an Elasticsearch bulk request.  Items should be of the form:
+  Generates an Elasticsearch bulk request. `operations` should be of the form:
 
   ```
-  [{:index, struct}, {:delete, other_struct}, {:update, third_struct}, ...]
+  [
+    {:index, struct}, 
+    {:delete, other_struct}, 
+    {:update, third_struct}
+  ]
   ```
 
   The function will handle formatting the bulk request properly and passing each
