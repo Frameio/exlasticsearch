@@ -21,8 +21,10 @@ defmodule ExlasticSearch.Repo do
   Creates an index as defined in `model`
   """
   @spec create_index(atom) :: response
-  def create_index(model),
-    do: es_url() |> Index.create(model.__es_index__(), model.__es_settings__())
+  def create_index(model) do 
+    es_url() 
+    |> Index.create(model.__es_index__(), model.__es_settings__())
+  end
 
   @doc """
   Updates the index for `model`
@@ -52,15 +54,19 @@ defmodule ExlasticSearch.Repo do
   Updates an index's mappings to the current definition in `model`
   """
   @spec create_mapping(atom) :: response
-  def create_mapping(model),
-    do: es_url() |> Mapping.put(model.__es_index__(), model.__doc_type__(), model.__es_mappings__())
+  def create_mapping(model) do 
+    es_url() 
+    |> Mapping.put(model.__es_index__(), model.__doc_type__(), model.__es_mappings__())
+  end
 
   @doc """
   Removes the index defined in `model`
   """
   @spec delete_index(atom) :: response
-  def delete_index(model),
-    do: es_url() |> Index.delete(model.__es_index__())
+  def delete_index(model) do 
+    es_url() 
+    |> Index.delete(model.__es_index__())
+  end
 
   @doc """
   Checks if the index for `model` exists
@@ -124,8 +130,10 @@ defmodule ExlasticSearch.Repo do
   Removes `struct` from the index of its model
   """
   @spec delete(struct) :: response
-  def delete(%{__struct__: model} = struct),
-    do: es_url() |> Document.delete(model.__es_index__(), model.__doc_type__(), Indexable.id(struct))
+  def delete(%{__struct__: model} = struct) do 
+    es_url() 
+    |> Document.delete(model.__es_index__(), model.__doc_type__(), Indexable.id(struct))
+  end
 
 
   @doc """
@@ -143,16 +151,12 @@ defmodule ExlasticSearch.Repo do
   struct to the `ExlasticSearch.Indexable` protocol
   """
   def bulk(operations, opts \\ []) do
-    ExlasticSearch.Monitoring.increment("elasticsearch.batch_operations", length(operations))
     bulk_request = operations 
                    |> Enum.map(&bulk_operation/1) 
                    |> Enum.concat()
                    
-    result       = es_url() 
-                   |> Bulk.post(bulk_request, [], opts)
-
-    Logger.debug fn -> "ES Bulk response #{inspect(result)}" end
-    result
+    es_url() 
+    |> Bulk.post(bulk_request, [], opts)
   end
 
   def index_stream(stream, parallelism \\ 10, demand \\ 10) do
