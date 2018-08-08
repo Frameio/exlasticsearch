@@ -35,6 +35,7 @@ defmodule Exlasticsearch.MixProject do
       {:elastix, "~> 0.5.0"},
       {:ecto, "~> 2.1.0"},
       {:scrivener_ecto, "~> 1.0"},
+      {:decorator, "~> 1.2"},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end

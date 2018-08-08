@@ -10,6 +10,7 @@ defmodule ExlasticSearch.Repo do
     url: "https://elasticsearch.url.io:9200"
   """
   use Scrivener
+  use ExlasticSearch.Retry.Decorator
   alias ExlasticSearch.{Indexable, Query, Response}
   alias Elastix.{Index, Mapping, Document, Bulk, Search, HTTP}
   require Logger
@@ -93,14 +94,18 @@ defmodule ExlasticSearch.Repo do
   protocol prior to insertion
   """
   @spec index(struct) :: response
+  @decorate retry()
   def index(%{__struct__: model} = struct) do
     id = Indexable.id(struct)
     document = Indexable.document(struct)
-    es_url() |> Document.index(model.__es_index__(), model.__doc_type__(), id, document)
+
+    es_url() 
+    |> Document.index(model.__es_index__(), model.__doc_type__(), id, document)
+    |> mark_failure()
   end
 
   @doc """
-  Gets an ES document by id
+  Gets an ES document by _id
   """
   @spec get(struct) :: response
   def get(%{__struct__: model} = struct) do
@@ -130,9 +135,11 @@ defmodule ExlasticSearch.Repo do
   Removes `struct` from the index of its model
   """
   @spec delete(struct) :: response
+  @decorate retry()
   def delete(%{__struct__: model} = struct) do 
     es_url() 
     |> Document.delete(model.__es_index__(), model.__doc_type__(), Indexable.id(struct))
+    |> mark_failure()
   end
 
 
@@ -157,6 +164,7 @@ defmodule ExlasticSearch.Repo do
                    
     es_url() 
     |> Bulk.post(bulk_request, [], opts)
+    |> mark_failure()
   end
 
   def index_stream(stream, parallelism \\ 10, demand \\ 10) do
@@ -192,4 +200,8 @@ defmodule ExlasticSearch.Repo do
     end
   end
   defp decode(response, _, _), do: response
+
+  defp mark_failure({:ok, %HTTPoison.Response{body: %{"_shards" => %{"successful" => 0}}} = result}), do: {:error, result}
+  defp mark_failure({:ok, %HTTPoison.Response{body: %{"errors" => true}} = result}), do: {:error, result}
+  defp mark_failure(result), do: result
 end
