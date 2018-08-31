@@ -119,6 +119,14 @@ defmodule ExlasticSearch.Query do
     do: %{query | sort: [{field, direction} | sorts]}
 
   @doc """
+  Converts a query to a function score query and adds the given `script` for scoring
+  """
+  @spec script_score(t, binary) :: t
+  def script_score(%__MODULE__{} = q, script) do
+    %{q | type: :function_score, options: %{script: %{source: script}}}
+  end
+
+  @doc """
   Converts a `Query` struct into an ES compliant bool compound query
   """
   @spec realize(t) :: map
