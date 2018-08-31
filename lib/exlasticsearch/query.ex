@@ -21,12 +21,13 @@ defmodule ExlasticSearch.Query do
   on specific query types.
   """
   defstruct [
-    queryable: nil, 
-    must: [], 
-    should: [], 
-    filter: [], 
-    must_not: [], 
-    options: %{}, 
+    type: :bool,
+    queryable: nil,
+    must: [],
+    should: [],
+    filter: [],
+    must_not: [],
+    options: %{},
     sort: []
   ]
 
@@ -121,7 +122,20 @@ defmodule ExlasticSearch.Query do
   Converts a `Query` struct into an ES compliant bool compound query
   """
   @spec realize(t) :: map
-  def realize(%__MODULE__{} = query), do: %{query: query_clause(query)} |> add_sort(query)
+  def realize(%__MODULE__{type: :function_score, options: %{script: script}} = query) do
+    %{
+      query: %{
+        function_score: %{
+          query: query_clause(%{query | type: :bool}),
+          script_score: %{
+            script: script
+          }
+        }
+      }
+    }
+  end
+  def realize(%__MODULE__{type: :bool} = query),
+    do: %{query: query_clause(query)} |> add_sort(query)
 
   @doc """
   Add options to the current bool compound query (for instance the minimum number of accepted matches)
