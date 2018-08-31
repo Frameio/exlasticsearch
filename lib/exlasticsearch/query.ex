@@ -122,8 +122,8 @@ defmodule ExlasticSearch.Query do
   Converts a query to a function score query and adds the given `script` for scoring
   """
   @spec script_score(t, binary) :: t
-  def script_score(%__MODULE__{} = q, script) do
-    %{q | type: :function_score, options: %{script: %{source: script}}}
+  def script_score(%__MODULE__{} = q, script, opts \\ []) do
+    %{q | type: :function_score, options: %{script: opts |> Enum.into(%{source: script})}}
   end
 
   @doc """
