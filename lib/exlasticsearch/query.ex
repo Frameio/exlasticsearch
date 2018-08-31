@@ -122,25 +122,21 @@ defmodule ExlasticSearch.Query do
   Converts a query to a function score query and adds the given `script` for scoring
   """
   @spec script_score(t, binary) :: t
-  def script_score(%__MODULE__{} = q, script, opts \\ []) do
-    %{q | type: :function_score, options: %{script: opts |> Enum.into(%{source: script})}}
+  def script_score(%__MODULE__{options: options} = q, script, opts \\ []) do
+    script = Enum.into(opts, %{source: script})
+    %{q | type: :function_score, options: Map.put(options, :script, script)}
   end
 
   @doc """
-  Converts a `Query` struct into an ES compliant bool compound query
+  Converts a `Query` struct into an ES compliant bool or function score compound query
   """
   @spec realize(t) :: map
-  def realize(%__MODULE__{type: :function_score, options: %{script: script}} = query) do
-    %{
-      query: %{
-        function_score: %{
-          query: query_clause(%{query | type: :bool}),
-          script_score: %{
-            script: script
-          }
-        }
-      }
-    }
+  def realize(%__MODULE__{type: :function_score, options: %{script: script} = opts} = query) do
+    query =
+      realize(%{query | type: :bool, options: Map.delete(opts, :script)})
+      |> Map.put(:script_score, %{script: script})
+
+    %{query: %{function_score: query}}
   end
   def realize(%__MODULE__{type: :bool} = query),
     do: %{query: query_clause(query)} |> add_sort(query)
