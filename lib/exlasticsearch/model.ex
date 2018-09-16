@@ -2,7 +2,7 @@ defmodule ExlasticSearch.Model do
   @moduledoc """
   Base macro for generating elasticsearch modules.  Is intended to be used in conjunction with a
   Ecto model (although that is not strictly necessary).
-  
+
   It includes three primary macros:
 
   * `indexes/2`
@@ -39,6 +39,7 @@ defmodule ExlasticSearch.Model do
       import Ecto.Query, only: [from: 2]
 
       @es_query %ExlasticSearch.Query{queryable: __MODULE__}
+      @mapping_options %{}
 
       def es_type(column), do: __schema__(:type, column) |> ecto_to_es()
 
@@ -70,13 +71,13 @@ defmodule ExlasticSearch.Model do
 
       unquote(block)
 
-      def __es_mappings__(), do: %{
-        properties: @es_mappings
-                    |> Enum.map(fn {key, value} ->
-                      {key, value |> Enum.into(%{type: es_type(key)})}
-                    end)
-                    |> Enum.into(%{})
-      }
+      def __es_mappings__() do
+        @mapping_options
+        |> Map.put(:properties, @es_mappings
+                                |> Enum.into(%{}, fn {key, value} ->
+                                  {key, value |> Enum.into(%{type: es_type(key)})}
+                                end))
+      end
 
       @es_mapped_cols @es_mappings |> Enum.map(&elem(&1, 0))
       @es_decode_template @es_mappings
@@ -84,6 +85,8 @@ defmodule ExlasticSearch.Model do
                           |> Enum.map(&ExlasticSearch.Model.mapping_template/1)
 
       def __mappings__(), do: @es_mapped_cols
+
+      def __mapping_options__(), do: @mapping_options
 
       def __es_decode_template__(), do: @es_decode_template
 
@@ -134,6 +137,12 @@ defmodule ExlasticSearch.Model do
   defmacro settings(settings) do
     quote do
       def __es_settings__(), do: %{settings: unquote(settings)}
+    end
+  end
+
+  defmacro options(options) do
+    quote do
+      @mapping_options unquote(options)
     end
   end
 

@@ -11,17 +11,24 @@ defmodule ExlasticSearch.ModelTest do
     end
 
     test "__es_mappings__" do
-      %{properties: mappings} = TestModel.__es_mappings__()
+      %{properties: mappings, dynamic: val} = TestModel.__es_mappings__()
 
+      assert val == :strict
       assert mappings.name.type == :text
       assert mappings.age.type == :long
       assert mappings.user.properties.ext_name.type == :text
     end
 
+    test "__mapping_options__" do
+      %{dynamic: val} = TestModel.__mapping_options__()
+
+      assert val == :strict
+    end
+
     test "es_decode" do
       %TestModel.SearchResult{} = result = TestModel.es_decode(%{
-        "name" => "some_name", 
-        "age" => 2, 
+        "name" => "some_name",
+        "age" => 2,
         "user" => %{
           "ext_name" => "other_name"
         }

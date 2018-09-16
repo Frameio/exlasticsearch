@@ -9,6 +9,7 @@ defmodule ExlasticSearch.TestModel do
 
   indexes :test_model do
     settings %{}
+    options %{dynamic: :strict}
     mapping :name
     mapping :age
 
@@ -19,7 +20,7 @@ end
 defimpl ExlasticSearch.Indexable, for: ExlasticSearch.TestModel do
   def id(%{id: id}), do: id
 
-  def document(struct) do 
+  def document(struct) do
     struct
     |> Map.from_struct()
     |> Map.take(@for.__mappings__())

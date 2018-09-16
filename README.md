@@ -8,7 +8,7 @@ friendly query wrappers, response formatting and the like.
 ```elixir
 def deps do
   [
-    {:exlasticsearch, "~> 0.2.2"}
+    {:exlasticsearch, "~> 1.3.0"}
   ]
 end
 ```
