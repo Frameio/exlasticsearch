@@ -127,10 +127,17 @@ defmodule ExlasticSearch.Query do
     %{q | type: :function_score, options: Map.put(options, :script, script)}
   end
 
+  def nested(%__MODULE__{options: options} = q, path) do
+    %{q | type: :nested, options: Map.put(options, :path, path)}
+  end
+
   @doc """
   Converts a `Query` struct into an ES compliant bool or function score compound query
   """
   @spec realize(t) :: map
+  def realize(%__MODULE__{type: :nested} = query) do
+    %{query: query_clause(query)} |> add_sort(query)
+  end
   def realize(%__MODULE__{type: :function_score, options: %{script: script} = opts} = query) do
     query =
       realize(%{query | type: :bool, options: Map.delete(opts, :script)})
@@ -157,6 +164,12 @@ defmodule ExlasticSearch.Query do
     end)
   end
 
+  defp query_clause(%__MODULE__{type: :nested, options: %{path: path} = opts} = query) do
+    query =
+      realize(%{query | type: :bool, options: Map.delete(opts, :path)})
+      |> Map.put(:path, path)
+    %{nested: query}
+  end
   defp query_clause(%__MODULE__{} = query),
     do: %{bool: include_if_present(query) |> Map.merge(query.options)}
   defp query_clause(clauses) when is_list(clauses), do: Enum.map(clauses, &query_clause/1)
