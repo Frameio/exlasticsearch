@@ -127,6 +127,11 @@ defmodule ExlasticSearch.Query do
     %{q | type: :function_score, options: Map.put(options, :script, script)}
   end
 
+  def function_score(%__MODULE__{options: options} = q, functions, opts \\ []) do
+    funcs = Enum.into(opts, %{functions: functions})
+    %{q | type: :function_score, options: Map.merge(options, funcs)}
+  end
+
   def nested(%__MODULE__{options: options} = q, path) do
     %{q | type: :nested, options: Map.put(options, :path, path)}
   end
@@ -164,12 +169,10 @@ defmodule ExlasticSearch.Query do
     end)
   end
 
-  defp query_clause(%__MODULE__{type: :nested, options: %{path: path} = opts} = query) do
-    query =
-      realize(%{query | type: :bool, options: Map.delete(opts, :path)})
-      |> Map.put(:path, path)
-    %{nested: query}
-  end
+  defp query_clause(%__MODULE__{type: :function_score} = query),
+    do: %{function_score: transform_query(query)}
+  defp query_clause(%__MODULE__{type: :nested} = query),
+    do: %{nested: transform_query(query)}
   defp query_clause(%__MODULE__{} = query),
     do: %{bool: include_if_present(query) |> Map.merge(query.options)}
   defp query_clause(clauses) when is_list(clauses), do: Enum.map(clauses, &query_clause/1)
@@ -177,6 +180,19 @@ defmodule ExlasticSearch.Query do
 
   defp add_sort(query, %__MODULE__{sort: []}), do: query
   defp add_sort(query, %__MODULE__{sort: sort}), do: Map.put(query, :sort, realize_sort(sort))
+
+  defp transform_query(%{type: :bool, options: %{path: path} = opts} = query) do
+    realize(%{query | type: :bool, options: Map.delete(opts, :path)})
+    |> Map.put(:path, path)
+  end
+  defp transform_query(%{type: :function_score, options: %{script: script} = opts} = query) do
+    realize(%{query | type: :bool, options: Map.delete(opts, :script)})
+    |> Map.put(:script_score, %{script: script})
+  end
+  defp transform_query(%{type: :function_score, options: %{functions: functions} = opts} = query) do
+    realize(%{query | type: :bool, options: Map.delete(opts, :functions)})
+    |> Map.put(:functions, functions)
+  end
 
   defp realize_sort(sort), do: Enum.reverse(sort) |> Enum.map(fn {field, direction} -> %{field => direction} end)
 end
