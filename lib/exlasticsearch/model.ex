@@ -42,7 +42,7 @@ defmodule ExlasticSearch.Model do
 
       @es_query %ExlasticSearch.Query{
         queryable: __MODULE__,
-        index_type: Application.get_env(:exlasticsearch, __MODULE__)[:index_type]
+        index_type: Keyword.get(Application.get_env(:exlasticsearch, __MODULE__, []), :index_type, :read)
       }
       @mapping_options %{}
 
