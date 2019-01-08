@@ -28,7 +28,8 @@ defmodule ExlasticSearch.Query do
     filter: [],
     must_not: [],
     options: %{},
-    sort: []
+    sort: [],
+    index_type: :read
   ]
 
   @type t :: %__MODULE__{}

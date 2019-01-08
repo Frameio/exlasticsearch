@@ -40,7 +40,10 @@ defmodule ExlasticSearch.Model do
       import ExlasticSearch.Model
       import Ecto.Query, only: [from: 2]
 
-      @es_query %ExlasticSearch.Query{queryable: __MODULE__}
+      @es_query %ExlasticSearch.Query{
+        queryable: __MODULE__,
+        index_type: Application.get_env(:exlasticsearch, __MODULE__)[:index_type]
+      }
       @mapping_options %{}
 
       def es_type(column), do: __schema__(:type, column) |> ecto_to_es()
