@@ -8,6 +8,7 @@ defmodule ExlasticSearch.TestModel do
   end
 
   indexes :test_model do
+    versions 2
     settings %{}
     options %{dynamic: :strict}
     mapping :name

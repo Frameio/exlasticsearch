@@ -7,7 +7,7 @@ defmodule ExlasticSearch.ModelTest do
     end
 
     test "__es_index__" do
-      assert TestModel.__es_index__() == "test_models"
+      assert TestModel.__es_index__() == "test_models2"
     end
 
     test "__es_mappings__" do

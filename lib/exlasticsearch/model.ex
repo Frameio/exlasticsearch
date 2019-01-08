@@ -69,14 +69,18 @@ defmodule ExlasticSearch.Model do
   defmacro indexes(type, block) do
     quote do
       Module.register_attribute(__MODULE__, :es_mappings, accumulate: true)
+      @read_version :ignore
+      @index_version :ignore
 
       def __doc_type__(), do: unquote(type)
 
-      unquote do
-        define_index(type)
-      end
-
       unquote(block)
+
+      def __es_index__(type \\ :read)
+      def __es_index__(:read), do: index_version(unquote(type), @read_version)
+      def __es_index__(:index), do: index_version(unquote(type), @index_version)
+      def __es_index__(:delete), do: __es_index__(:read)
+      def __es_index__(_), do: __es_index__(:read)
 
       def __es_mappings__() do
         @mapping_options
@@ -153,6 +157,19 @@ defmodule ExlasticSearch.Model do
     end
   end
 
+  defmacro versions({index, read}) do
+    quote do
+      @read_version unquote(read)
+      @index_version unquote(index)
+    end
+  end
+  defmacro versions(index) do
+    quote do
+      @read_version unquote(index)
+      @index_version unquote(index)
+    end
+  end
+
   def __mapping__(mod, name, properties) do
     Module.put_attribute(mod, :es_mappings, {name, properties})
   end
@@ -164,6 +181,10 @@ defmodule ExlasticSearch.Model do
     model.__es_decode_template__()
     |> do_decode(source)
   end
+
+  def index_version(type), do: "#{type}s"
+  def index_version(type, :ignore), do: index_version(type)
+  def index_version(type, version), do: "#{type}s#{version}"
 
   def mapping_template({name, %{properties: properties}}), do: {Atom.to_string(name), name, Enum.map(properties, &mapping_template/1)}
   def mapping_template({name, _}), do: {Atom.to_string(name), name, :preserve}
@@ -179,34 +200,4 @@ defmodule ExlasticSearch.Model do
     |> Enum.into(%{})
   end
   defp do_decode(_, _), do: nil
-
-  defp define_index({type, indexing_version, read_version}) do
-    read_version     = index_version(type, read_version)
-    indexing_version = index_version(type, indexing_version)
-    quote do
-      def __es_index__(type \\ :read)
-      def __es_index__(:read), do: unquote(read_version)
-      def __es_index__(:index), do: unquote(indexing_version)
-      def __es_index__(:delete), do: unquote(read_version)
-    end
-  end
-  defp define_index({type, version}) do
-    read_version = index_version(type, version)
-    quote do
-      def __es_index__(type \\ :read)
-      def __es_index__(:read), do: unquote(read_version)
-      def __es_index__(_), do: __es_index__(:read)
-    end
-  end
-  defp define_index(type) do
-    quote do
-      def __es_index__(type \\ :read)
-      def __es_index__(:read), do: "#{unquote(type)}s"
-      def __es_index__(_), do: __es_index__(:read)
-    end
-  end
-
-  defp index_version(type), do: "#{type}s"
-  defp index_version(type, :ignore), do: index_version(type)
-  defp index_version(type, version), do: "#{type}s#{version}"
 end
