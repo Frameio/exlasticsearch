@@ -22,16 +22,16 @@ defmodule ExlasticSearch.Repo do
   Creates an index as defined in `model`
   """
   @spec create_index(atom) :: response
-  def create_index(model) do 
-    es_url() 
-    |> Index.create(model.__es_index__(), model.__es_settings__())
+  def create_index(model) do
+    es_url()
+    |> Index.create(model.__es_index__(:index), model.__es_settings__())
   end
 
   @doc """
   Updates the index for `model`
   """
   def update_index(model) do
-    url = es_url() <> "/#{model.__es_index__()}/_settings"
+    url = es_url() <> "/#{model.__es_index__(:index)}/_settings"
     HTTP.put(url, Poison.encode!(model.__es_settings__()))
   end
 
@@ -39,7 +39,7 @@ defmodule ExlasticSearch.Repo do
   Close an index for `model`
   """
   def close_index(model) do
-    url = es_url() <> "/#{model.__es_index__()}/_close"
+    url = es_url() <> "/#{model.__es_index__(:index)}/_close"
     HTTP.post(url, "")
   end
 
@@ -47,7 +47,7 @@ defmodule ExlasticSearch.Repo do
   open an index for `model`
   """
   def open_index(model) do
-    url = es_url() <> "/#{model.__es_index__()}/_open"
+    url = es_url() <> "/#{model.__es_index__(:index)}/_open"
     HTTP.post(url, "")
   end
 
@@ -55,18 +55,18 @@ defmodule ExlasticSearch.Repo do
   Updates an index's mappings to the current definition in `model`
   """
   @spec create_mapping(atom) :: response
-  def create_mapping(model) do 
-    es_url() 
-    |> Mapping.put(model.__es_index__(), model.__doc_type__(), model.__es_mappings__())
+  def create_mapping(model) do
+    es_url()
+    |> Mapping.put(model.__es_index__(:index), model.__doc_type__(), model.__es_mappings__())
   end
 
   @doc """
   Removes the index defined in `model`
   """
   @spec delete_index(atom) :: response
-  def delete_index(model) do 
-    es_url() 
-    |> Index.delete(model.__es_index__())
+  def delete_index(model) do
+    es_url()
+    |> Index.delete(model.__es_index__(:delete))
   end
 
   @doc """
@@ -99,8 +99,8 @@ defmodule ExlasticSearch.Repo do
     id = Indexable.id(struct)
     document = Indexable.document(struct)
 
-    es_url() 
-    |> Document.index(model.__es_index__(), model.__doc_type__(), id, document)
+    es_url()
+    |> Document.index(model.__es_index__(:index), model.__doc_type__(), id, document)
     |> mark_failure()
   end
 
@@ -136,9 +136,9 @@ defmodule ExlasticSearch.Repo do
   """
   @spec delete(struct) :: response
   @decorate retry()
-  def delete(%{__struct__: model} = struct) do 
-    es_url() 
-    |> Document.delete(model.__es_index__(), model.__doc_type__(), Indexable.id(struct))
+  def delete(%{__struct__: model} = struct) do
+    es_url()
+    |> Document.delete(model.__es_index__(:index), model.__doc_type__(), Indexable.id(struct))
     |> mark_failure()
   end
 
@@ -148,8 +148,8 @@ defmodule ExlasticSearch.Repo do
 
   ```
   [
-    {:index, struct}, 
-    {:delete, other_struct}, 
+    {:index, struct},
+    {:delete, other_struct},
     {:update, third_struct}
   ]
   ```
@@ -158,11 +158,11 @@ defmodule ExlasticSearch.Repo do
   struct to the `ExlasticSearch.Indexable` protocol
   """
   def bulk(operations, opts \\ []) do
-    bulk_request = operations 
-                   |> Enum.map(&bulk_operation/1) 
+    bulk_request = operations
+                   |> Enum.map(&bulk_operation/1)
                    |> Enum.concat()
-                   
-    es_url() 
+
+    es_url()
     |> Bulk.post(bulk_request, [], opts)
     |> mark_failure()
   end
@@ -183,10 +183,10 @@ defmodule ExlasticSearch.Repo do
   end
 
   defp bulk_operation({:delete, %{__struct__: model} = struct}),
-    do: [%{delete: %{_id: Indexable.id(struct), _index: model.__es_index__(), _type: model.__doc_type__()}}]
+    do: [%{delete: %{_id: Indexable.id(struct), _index: model.__es_index__(:index), _type: model.__doc_type__()}}]
   defp bulk_operation({op_type, %{__struct__: model} = struct}) do
     [
-      %{op_type => %{_id: Indexable.id(struct), _index: model.__es_index__(), _type: model.__doc_type__()}},
+      %{op_type => %{_id: Indexable.id(struct), _index: model.__es_index__(:index), _type: model.__doc_type__()}},
       Indexable.document(struct)
     ]
   end
