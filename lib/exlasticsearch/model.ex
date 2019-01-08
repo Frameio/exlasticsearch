@@ -28,6 +28,8 @@ defmodule ExlasticSearch.Model do
   * `__es_mappings__/0` - map of all fully specified mappings for the given type
   * `__mappings__/0` - columns with mappings for the given type
   * `__es_index__/0` - the elasticsearch index for this model
+  * `__es_index__/1` - the elasticsearch index for reads/writes when performing zero-downtime updates
+                        (pass either `:read` or `:index` respectively)
   * `__doc_type__/0` - the default document type for searches in __es_index__()
   * `__es_settings__/0` - the settings for the index of this model
   """
@@ -67,7 +69,9 @@ defmodule ExlasticSearch.Model do
 
       def __doc_type__(), do: unquote(type)
 
-      def __es_index__(), do: "#{unquote(type)}s"
+      unquote do
+        define_index(type)
+      end
 
       unquote(block)
 
@@ -167,6 +171,29 @@ defmodule ExlasticSearch.Model do
     |> Enum.into(%{})
   end
   defp do_decode(_, _), do: nil
+
+  defp define_index({type, indexing_version, read_version}) do
+    quote do
+      def __es_index__(type \\ :read)
+      def __es_index__(:read), do: "#{unquote(type)}s#{unquote(read_version)}"
+      def __es_index__(:index), do: "#{unquote(type)}s#{unquote(indexing_version)}"
+      def __es_index__(:delete), do: "#{unquote(type)}s#{unquote(read_version)}"
+    end
+  end
+  defp define_index({type, version}) do
+    quote do
+      def __es_index__(type \\ :read)
+      def __es_index__(:read), do: "#{unquote(type)}s#{unquote(version)}"
+      def __es_index__(_), do: __es_index__(:read)
+    end
+  end
+  defp define_index(type) do
+    quote do
+      def __es_index__(type \\ :read)
+      def __es_index__(:read), do: "#{unquote(type)}s"
+      def __es_index__(_), do: __es_index__(:read)
+    end
+  end
 
   def mapping_template({name, %{properties: properties}}), do: {Atom.to_string(name), name, Enum.map(properties, &mapping_template/1)}
   def mapping_template({name, _}), do: {Atom.to_string(name), name, :preserve}
