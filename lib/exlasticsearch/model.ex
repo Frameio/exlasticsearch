@@ -165,6 +165,11 @@ defmodule ExlasticSearch.Model do
     |> do_decode(source)
   end
 
+  def mapping_template({name, %{properties: properties}}), do: {Atom.to_string(name), name, Enum.map(properties, &mapping_template/1)}
+  def mapping_template({name, _}), do: {Atom.to_string(name), name, :preserve}
+
+  def ecto_to_es(type), do: @type_inference.infer(type)
+
   defp do_decode(template, source) when is_map(source) do
     template
     |> Enum.map(fn
@@ -176,17 +181,20 @@ defmodule ExlasticSearch.Model do
   defp do_decode(_, _), do: nil
 
   defp define_index({type, indexing_version, read_version}) do
+    read_version     = index_version(type, read_version)
+    indexing_version = index_version(type, indexing_version)
     quote do
       def __es_index__(type \\ :read)
-      def __es_index__(:read), do: "#{unquote(type)}s#{unquote(read_version)}"
-      def __es_index__(:index), do: "#{unquote(type)}s#{unquote(indexing_version)}"
-      def __es_index__(:delete), do: "#{unquote(type)}s#{unquote(read_version)}"
+      def __es_index__(:read), do: unquote(read_version)
+      def __es_index__(:index), do: unquote(indexing_version)
+      def __es_index__(:delete), do: unquote(read_version)
     end
   end
   defp define_index({type, version}) do
+    read_version = index_version(type, version)
     quote do
       def __es_index__(type \\ :read)
-      def __es_index__(:read), do: "#{unquote(type)}s#{unquote(version)}"
+      def __es_index__(:read), do: unquote(read_version)
       def __es_index__(_), do: __es_index__(:read)
     end
   end
@@ -198,8 +206,7 @@ defmodule ExlasticSearch.Model do
     end
   end
 
-  def mapping_template({name, %{properties: properties}}), do: {Atom.to_string(name), name, Enum.map(properties, &mapping_template/1)}
-  def mapping_template({name, _}), do: {Atom.to_string(name), name, :preserve}
-
-  def ecto_to_es(type), do: @type_inference.infer(type)
+  defp index_version(type), do: "#{type}s"
+  defp index_version(type, :ignore), do: index_version(type)
+  defp index_version(type, version), do: "#{type}s#{version}"
 end
