@@ -2,12 +2,20 @@ defmodule ExlasticSearch.RepoTest do
   use ExUnit.Case, async: true
   alias ExlasticSearch.{
     Repo,
-    TestModel
+    TestModel,
+
   }
+  alias ExlasticSearch.MultiVersionTestModel, as: MVTestModel
 
   setup_all do
     Repo.create_index(TestModel)
     Repo.create_mapping(TestModel)
+
+    Repo.create_index(MVTestModel)
+    Repo.create_mapping(MVTestModel)
+
+    Repo.create_index(MVTestModel, :read)
+    Repo.create_mapping(MVTestModel, :read)
     :ok
   end
 
@@ -24,6 +32,17 @@ defmodule ExlasticSearch.RepoTest do
     test "It will bulk index/delete from es" do
       model = %ExlasticSearch.TestModel{id: Ecto.UUID.generate()}
       {:ok, _} = Repo.bulk([{:index, model}])
+
+      assert exists?(model)
+    end
+  end
+
+  describe "#rotate" do
+    test "It can deprecate an old index version" do
+      model = %MVTestModel{id: Ecto.UUID.generate()}
+      {:ok, _} = Repo.index(model)
+
+      Repo.rotate(MVTestModel)
 
       assert exists?(model)
     end
