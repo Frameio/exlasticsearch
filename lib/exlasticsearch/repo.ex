@@ -22,9 +22,9 @@ defmodule ExlasticSearch.Repo do
   Creates an index as defined in `model`
   """
   @spec create_index(atom) :: response
-  def create_index(model) do
+  def create_index(model, index \\ :index) do
     es_url()
-    |> Index.create(model.__es_index__(:index), model.__es_settings__())
+    |> Index.create(model.__es_index__(index), model.__es_settings__())
   end
 
   @doc """
@@ -55,27 +55,77 @@ defmodule ExlasticSearch.Repo do
   Updates an index's mappings to the current definition in `model`
   """
   @spec create_mapping(atom) :: response
-  def create_mapping(model) do
+  def create_mapping(model, index \\ :index) do
     es_url()
-    |> Mapping.put(model.__es_index__(:index), model.__doc_type__(), model.__es_mappings__())
+    |> Mapping.put(model.__es_index__(index), model.__doc_type__(), model.__es_mappings__())
   end
 
   @doc """
   Removes the index defined in `model`
   """
   @spec delete_index(atom) :: response
-  def delete_index(model) do
+  def delete_index(model, index \\ :index) do
     es_url()
-    |> Index.delete(model.__es_index__(:delete))
+    |> Index.delete(model.__es_index__(index))
+  end
+
+  @doc """
+  Aliases one index version to another, for instance:
+
+  ```
+  alias(MyModel, read: :index)
+  ```
+
+  will create an alias of the read version of the model's index
+  against it's indexing version
+  """
+  @spec create_alias(atom, [{atom, atom}]) :: response
+  def create_alias(model, [{from, target}]) do
+    url = "#{es_url()}/_aliases"
+    from_index   = model.__es_index__(from)
+    target_index = model.__es_index__(target)
+    json = Poison.encode!(%{
+      actions: [
+        %{
+          add: %{
+            index: from_index,
+            alias: target_index
+          },
+        }
+      ]
+    })
+
+    HTTP.post(url, json)
+  end
+
+  @doc """
+  Deletes the read index and aliases the write index to it
+  """
+  @spec rotate(atom) :: response
+  def rotate(model) do
+    with false <- model.__es_index__(:read) == model.__es_index__(:index),
+         {:ok, %HTTPoison.Response{body: %{"acknowledged" => true}}} <- delete_index(model, :read),
+      do: create_alias(model, index: :read)
+  end
+
+  @doc """
+  Retries the aliases for a given index
+  """
+  @spec get_alias(atom, atom) :: response
+  def get_alias(model, index) when is_atom(index) do
+    index_name = model.__es_index__(index)
+    url = "#{es_url()}/#{index_name}/_alias/*"
+
+    HTTP.get(url)
   end
 
   @doc """
   Checks if the index for `model` exists
   """
   @spec exists?(atom) :: boolean
-  def exists?(model) do
+  def exists?(model, index \\ :read) do
     es_url()
-    |> Index.exists?(model.__es_index__())
+    |> Index.exists?(model.__es_index__(index))
     |> case do
       {:ok, result} -> result
       _ -> false
