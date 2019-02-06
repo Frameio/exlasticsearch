@@ -17,6 +17,7 @@ defmodule ExlasticSearch.Repo do
 
   @chunk_size 2000
   @type response :: {:ok, %HTTPoison.Response{}} | {:error, any}
+  @log_level Application.get_env(:exlasticsearch, __MODULE__, []) |> Keyword.get(:log_leve, :debug)
 
   @doc """
   Creates an index as defined in `model`
@@ -136,7 +137,8 @@ defmodule ExlasticSearch.Repo do
   Refreshes `model`'s index
   """
   def refresh(model) do
-    es_url() |> Index.refresh(model.__es_index__())
+    es_url()
+    |> Index.refresh(model.__es_index__())
   end
 
   @doc """
@@ -151,6 +153,7 @@ defmodule ExlasticSearch.Repo do
 
     es_url()
     |> Document.index(model.__es_index__(:index), model.__doc_type__(), id, document)
+    |> log_response()
     |> mark_failure()
   end
 
@@ -161,6 +164,7 @@ defmodule ExlasticSearch.Repo do
   def get(%{__struct__: model} = struct, index_type \\ :read) do
     es_url()
     |> Document.get(model.__es_index__(index_type), model.__doc_type__(), Indexable.id(struct))
+    |> log_response()
     |> decode(Response.Record, model)
   end
 
@@ -168,7 +172,8 @@ defmodule ExlasticSearch.Repo do
   Creates a call to `search/3` by realizing `query` (using `Exlasticsearch.Query.realize/1`) and any provided search opts
   """
   @spec search(Query.t, list) :: response
-  def search(%Query{queryable: model} = query, params), do: search(model, Query.realize(query), params, query.index_type || :read)
+  def search(%Query{queryable: model} = query, params),
+    do: search(model, Query.realize(query), params, query.index_type || :read)
 
   @doc """
   Searches the index and type associated with `model` according to query `search`
@@ -177,6 +182,7 @@ defmodule ExlasticSearch.Repo do
   def search(model, search, params, index_type \\ :read) do
     es_url()
     |> Search.search(model.__es_index__(index_type), [model.__doc_type__()], search, params)
+    |> log_response()
     |> decode(Response.Search, model)
   end
 
@@ -189,6 +195,7 @@ defmodule ExlasticSearch.Repo do
   def delete(%{__struct__: model} = struct) do
     es_url()
     |> Document.delete(model.__es_index__(:index), model.__doc_type__(), Indexable.id(struct))
+    |> log_response()
     |> mark_failure()
   end
 
@@ -214,6 +221,7 @@ defmodule ExlasticSearch.Repo do
 
     es_url()
     |> Bulk.post(bulk_request, [], opts)
+    |> log_response()
     |> mark_failure()
   end
 
@@ -230,6 +238,11 @@ defmodule ExlasticSearch.Repo do
     |> bulk()
 
     length(chunk)
+  end
+
+  defp log_response(response) do
+    Logger.log(@log_level, fn -> "Elasticsearch  response: #{inspect(response)}" end)
+    response
   end
 
   defp bulk_operation({:delete, %{__struct__: model} = struct}),
