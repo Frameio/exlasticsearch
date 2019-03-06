@@ -3,8 +3,9 @@ defmodule ExlasticSearch.TestModel do
   use ExlasticSearch.Model
 
   schema "test_models" do
-    field :name, :string
-    field :age, :integer, default: 0
+    field :name,  :string
+    field :age,   :integer, default: 0
+    field :group, :string
   end
 
   indexes :test_model do
@@ -13,6 +14,7 @@ defmodule ExlasticSearch.TestModel do
     options %{dynamic: :strict}
     mapping :name
     mapping :age
+    mapping :group, type: :keyword
 
     mapping :user, properties: %{ext_name: %{type: :text}}
   end
