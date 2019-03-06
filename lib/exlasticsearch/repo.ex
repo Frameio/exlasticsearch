@@ -11,7 +11,7 @@ defmodule ExlasticSearch.Repo do
   """
   use Scrivener
   use ExlasticSearch.Retry.Decorator
-  alias ExlasticSearch.{Indexable, Query, Response}
+  alias ExlasticSearch.{Indexable, Query, Aggregation, Response}
   alias Elastix.{Index, Mapping, Document, Bulk, Search, HTTP}
   require Logger
 
@@ -186,6 +186,19 @@ defmodule ExlasticSearch.Repo do
     |> decode(Response.Search, model)
   end
 
+  @doc """
+  Performs an aggregation against a query, and returns only the aggregation results.
+  """
+  def aggregate(%Query{queryable: model} = query, %Aggregation{} = aggregation) do
+    search =
+      Query.realize(query)
+      |> Map.merge(Aggregation.realize(aggregation))
+    index_type = query.index_type || :read
+
+    es_url()
+    |> Search.search(model.__es_index__(index_type), [model.__doc_type__()], search, size: 0)
+    |> log_response() # TODO: figure out how to decode these, it's not trivial to type them
+  end
 
   @doc """
   Removes `struct` from the index of its model

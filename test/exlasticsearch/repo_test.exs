@@ -3,7 +3,8 @@ defmodule ExlasticSearch.RepoTest do
   alias ExlasticSearch.{
     Repo,
     TestModel,
-
+    Aggregation,
+    Query
   }
   alias ExlasticSearch.MultiVersionTestModel, as: MVTestModel
 
@@ -48,10 +49,70 @@ defmodule ExlasticSearch.RepoTest do
     end
   end
 
+  describe "#aggregate/2" do
+    test "It can perform terms aggreagtions" do
+      models = for i <- 1..3,
+        do: %TestModel{id: Ecto.UUID.generate(), name: "name #{i}", age: i}
+
+      {:ok, _} = Enum.map(models, & {:index, &1}) |> Repo.bulk()
+
+      aggregation = Aggregation.new() |> Aggregation.terms(:age, field: :age, size: 2)
+
+      {:ok, %{body: %{
+        "aggregations" => %{
+          "age" => %{
+            "buckets" => buckets
+          }
+        }
+      }}} =
+        TestModel.search_query()
+        |> Query.must(Query.match(:name, "name"))
+        |> Repo.aggregate(aggregation)
+
+      assert length(buckets) == 2
+      assert Enum.all?(buckets, & &1["key"] in [1, 2])
+    end
+
+    test "It can perform top_hits aggregations, even when nested" do
+      models = for i <- 1..3 do
+        %TestModel{
+          id: Ecto.UUID.generate(),
+          name: "name #{i}",
+          age: i,
+          group: (if rem(i, 2) == 0, do: "even", else: "odd")
+        }
+      end
+
+      {:ok, _} = Enum.map(models, & {:index, &1}) |> Repo.bulk()
+
+      nested = Aggregation.new() |> Aggregation.top_hits(:hits, %{})
+      aggregation =
+        Aggregation.new()
+        |> Aggregation.terms(:group, field: :group)
+        |> Aggregation.nest(:group, nested)
+
+      {:ok, %{body: %{
+        "aggregations" => %{
+          "group" => %{
+            "buckets" => buckets
+          }
+        }
+      }}} =
+        TestModel.search_query()
+        |> Query.must(Query.match(:name, "name"))
+        |> Repo.aggregate(aggregation)
+
+      assert length(buckets) == 2
+      assert Enum.all?(buckets, & !Enum.empty?(get_hits(&1)))
+    end
+  end
+
   defp exists?(model) do
     case Repo.get(model) do
       {:ok, %{found: true}} -> true
       _ -> false
     end
   end
+
+  defp get_hits(%{"hits" => %{"hits" => %{"hits" => hits}}}), do: hits
 end
