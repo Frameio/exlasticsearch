@@ -18,6 +18,19 @@ defmodule ExlasticSearch.Aggregation do
   end
 
   @doc """
+  A composite aggregation
+  """
+  def composite(%{aggregations: aggs} = agg, name, sources, opts \\ []) do
+    options = Enum.into(opts, %{})
+    %{agg | aggregations: [{name, %{composite: Map.merge(%{sources: sources}, options)}} | aggs]}
+  end
+
+  @doc """
+  The source for a composite aggregation, eg `composite_source(:age, :terms, field: :age)`
+  """
+  def composite_source(name, type, opts), do: %{name => %{type => Enum.into(opts, %{})}}
+
+  @doc """
   Return the top results for a query or aggregation scope
   """
   def top_hits(%{aggregations: aggs} = agg, name, options) do

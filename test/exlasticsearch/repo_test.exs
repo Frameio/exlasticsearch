@@ -105,6 +105,44 @@ defmodule ExlasticSearch.RepoTest do
       assert length(buckets) == 2
       assert Enum.all?(buckets, & !Enum.empty?(get_hits(&1)))
     end
+
+    test "It can perform composite aggregations" do
+      models = for i <- 1..3 do
+        %TestModel{
+          id: Ecto.UUID.generate(),
+          name: "name #{i}",
+          age: i,
+          group: (if rem(i, 2) == 0, do: "even", else: "odd")
+        }
+      end
+
+      {:ok, _} = Enum.map(models, & {:index, &1}) |> Repo.bulk()
+
+      sources = [
+        Aggregation.composite_source(:group, :terms, field: :group, order: :desc),
+        Aggregation.composite_source(:age, :terms, field: :age, order: :asc)
+      ]
+      aggregation = Aggregation.new() |> Aggregation.composite(:group, sources)
+
+      {:ok, %{body: %{
+        "aggregations" => %{
+          "group" => %{
+            "buckets" => buckets
+          }
+        }
+      }}} =
+        TestModel.search_query()
+        |> Query.must(Query.match(:name, "name"))
+        |> Repo.aggregate(aggregation)
+
+      for i <- 1..3 do
+        assert Enum.any?(buckets, fn
+          %{"key" => %{"age" => ^i, "group" => group}} ->
+            group == (if rem(i, 2) == 0, do: "even", else: "odd")
+          _ -> false
+        end)
+      end
+    end
   end
 
   defp exists?(model) do
