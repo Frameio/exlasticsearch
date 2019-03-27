@@ -1,7 +1,7 @@
 defmodule Exlasticsearch.MixProject do
   use Mix.Project
 
-  @version "1.6.0"
+  @version "1.6.2"
 
   def project do
     [

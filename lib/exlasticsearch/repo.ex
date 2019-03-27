@@ -105,7 +105,7 @@ defmodule ExlasticSearch.Repo do
   @spec rotate(atom) :: response
   def rotate(model) do
     with false <- model.__es_index__(:read) == model.__es_index__(:index),
-         {:ok, %HTTPoison.Response{body: %{"acknowledged" => true}}} <- delete_index(model, :read),
+         _result <- delete_index(model, :read),
       do: create_alias(model, index: :read)
   end
 
