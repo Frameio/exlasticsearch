@@ -17,7 +17,7 @@ defmodule ExlasticSearch.Repo do
 
   @chunk_size 2000
   @type response :: {:ok, %HTTPoison.Response{}} | {:error, any}
-  @log_level Application.get_env(:exlasticsearch, __MODULE__, []) |> Keyword.get(:log_leve, :debug)
+  @log_level Application.get_env(:exlasticsearch, __MODULE__, []) |> Keyword.get(:log_level, :debug)
 
   @doc """
   Creates an index as defined in `model`
