@@ -199,5 +199,8 @@ defmodule ExlasticSearch.Model do
     end)
     |> Enum.into(%{})
   end
+  defp do_decode(template, source) when is_list(source) do
+    Enum.map(source, &do_decode(template, &1))
+  end
   defp do_decode(_, _), do: nil
 end

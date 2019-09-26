@@ -1,6 +1,8 @@
 defmodule ExlasticSearch.ModelTest do
   use ExUnit.Case, async: true
+
   alias ExlasticSearch.TestModel
+
   describe "ES Schema functions" do
     test "__doc_type__" do
       assert TestModel.__doc_type__() == :test_model
@@ -25,7 +27,7 @@ defmodule ExlasticSearch.ModelTest do
       assert val == :strict
     end
 
-    test "es_decode" do
+    test "es_decode with nested objects" do
       %TestModel.SearchResult{} = result = TestModel.es_decode(%{
         "name" => "some_name",
         "age" => 2,
@@ -37,6 +39,23 @@ defmodule ExlasticSearch.ModelTest do
       assert result.name == "some_name"
       assert result.age == 2
       assert result.user.ext_name == "other_name"
+    end
+
+    test "es_decode with nested arrays" do
+      %TestModel.SearchResult{} = result = TestModel.es_decode(%{
+        "name" => "some_name",
+        "age" => 2,
+        "user" => [
+          %{"ext_name" => "other_name"},
+          %{"ext_name" => "second_name"}
+        ]
+      })
+
+      assert result.name == "some_name"
+      assert result.age == 2
+      assert length(result.user) == 2
+      assert Enum.at(result.user, 0) == %{ext_name: "other_name"}
+      assert Enum.at(result.user, 1) == %{ext_name: "second_name"}
     end
 
     test "search_query" do

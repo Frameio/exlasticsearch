@@ -17,7 +17,7 @@ defmodule ExlasticSearch.Response do
   This will define:
   * a struct for carrying the response
   * `parse/2` - converts a json decoded map from ES to the given response struct, and converting any models appropriately
-  * `to_model/2` - performs model conversion if possible (defaults to no-op) 
+  * `to_model/2` - performs model conversion if possible (defaults to no-op)
   """
   defmacro __using__(_) do
     quote do
