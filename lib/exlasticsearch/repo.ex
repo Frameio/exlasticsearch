@@ -149,7 +149,7 @@ defmodule ExlasticSearch.Repo do
   @decorate retry()
   def index(%{__struct__: model} = struct) do
     id = Indexable.id(struct)
-    document = Indexable.document(struct)
+    document = build_document(struct)
 
     es_url()
     |> Document.index(model.__es_index__(:index), model.__doc_type__(), id, document)
@@ -263,9 +263,11 @@ defmodule ExlasticSearch.Repo do
   defp bulk_operation({op_type, %{__struct__: model} = struct}) do
     [
       %{op_type => %{_id: Indexable.id(struct), _index: model.__es_index__(:index), _type: model.__doc_type__()}},
-      Indexable.document(struct)
+      build_document(struct)
     ]
   end
+
+  defp build_document(struct), do: struct |> Indexable.preload() |> Indexable.document()
 
   defp es_url(), do: Application.get_env(:exlasticsearch, __MODULE__)[:url]
 
