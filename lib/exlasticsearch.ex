@@ -22,7 +22,7 @@ defmodule ExlasticSearch do
   ```
   MySchema.search_query()
   |> must(math(field, value))
-  |> should(match_phrash(field, value, opts))
+  |> should(match_phrase(field, value, opts))
   |> filter(term(filter_field, value))
   ```
 
