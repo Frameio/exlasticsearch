@@ -42,7 +42,8 @@ defmodule ExlasticSearch.Model do
 
       @es_query %ExlasticSearch.Query{
         queryable: __MODULE__,
-        index_type: Keyword.get(Application.get_env(:exlasticsearch, __MODULE__, []), :index_type, :read)
+        index_type:
+          Keyword.get(Application.get_env(:exlasticsearch, __MODULE__, []), :index_type, :read)
       }
       @mapping_options %{}
 
@@ -54,7 +55,7 @@ defmodule ExlasticSearch.Model do
         Ecto.Query.from(r in query, order_by: [asc: :id])
       end
 
-      defoverridable [indexing_query: 0, indexing_query: 1]
+      defoverridable indexing_query: 0, indexing_query: 1
     end
   end
 
@@ -80,14 +81,19 @@ defmodule ExlasticSearch.Model do
       def __es_index__(:read), do: index_version(unquote(type), @read_version)
       def __es_index__(:index), do: index_version(unquote(type), @index_version)
       def __es_index__(:delete), do: __es_index__(:read)
+      def __es_index__(:read_sync_test), do: __es_index__(:read) <> "_sync"
+      def __es_index__(:index_sync_test), do: __es_index__(:index) <> "_sync"
       def __es_index__(_), do: __es_index__(:read)
 
       def __es_mappings__() do
         @mapping_options
-        |> Map.put(:properties, @es_mappings
-                                |> Enum.into(%{}, fn {key, value} ->
-                                  {key, value |> Enum.into(%{type: es_type(key)})}
-                                end))
+        |> Map.put(
+          :properties,
+          @es_mappings
+          |> Enum.into(%{}, fn {key, value} ->
+            {key, value |> Enum.into(%{type: es_type(key)})}
+          end)
+        )
       end
 
       @es_mapped_cols @es_mappings |> Enum.map(&elem(&1, 0))
@@ -101,7 +107,9 @@ defmodule ExlasticSearch.Model do
 
       def __es_decode_template__(), do: @es_decode_template
 
-      def es_decode(map) when is_map(map), do: struct(__MODULE__.SearchResult, es_decode(map, __MODULE__))
+      def es_decode(map) when is_map(map),
+        do: struct(__MODULE__.SearchResult, es_decode(map, __MODULE__))
+
       def es_decode(_), do: nil
 
       @after_compile ExlasticSearch.Model
@@ -120,6 +128,7 @@ defmodule ExlasticSearch.Model do
     """
     defmacro __using__(_) do
       columns = __CALLER__.module.__mappings__()
+
       quote do
         defmodule SearchResult do
           defstruct unquote(columns)
@@ -163,6 +172,7 @@ defmodule ExlasticSearch.Model do
       @index_version unquote(index)
     end
   end
+
   defmacro versions(index) do
     quote do
       @read_version unquote(index)
@@ -186,7 +196,9 @@ defmodule ExlasticSearch.Model do
   def index_version(type, :ignore), do: index_version(type)
   def index_version(type, version), do: "#{type}s#{version}"
 
-  def mapping_template({name, %{properties: properties}}), do: {Atom.to_string(name), name, Enum.map(properties, &mapping_template/1)}
+  def mapping_template({name, %{properties: properties}}),
+    do: {Atom.to_string(name), name, Enum.map(properties, &mapping_template/1)}
+
   def mapping_template({name, _}), do: {Atom.to_string(name), name, :preserve}
 
   def ecto_to_es(type), do: @type_inference.infer(type)
@@ -199,8 +211,10 @@ defmodule ExlasticSearch.Model do
     end)
     |> Enum.into(%{})
   end
+
   defp do_decode(template, source) when is_list(source) do
     Enum.map(source, &do_decode(template, &1))
   end
+
   defp do_decode(_, _), do: nil
 end

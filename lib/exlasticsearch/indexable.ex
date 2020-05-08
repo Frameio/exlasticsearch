@@ -9,10 +9,18 @@ defprotocol ExlasticSearch.Indexable do
   def id(_)
 
   @doc "Properties map to be inserted into ES"
+  @spec document(struct, atom) :: map
+  def document(_, _)
+
+  @doc "Properties map to be inserted into ES"
   @spec document(struct) :: map
   def document(_)
 
-  @doc "Any preloads needed to call `document/1`"
+  @doc "Any preloads needed to call `document/2`"
+  @spec preload(struct, atom) :: struct
+  def preload(_, _)
+
+  @doc "Any preloads needed to call `document/2`"
   @spec preload(struct) :: struct
   def preload(_)
 end

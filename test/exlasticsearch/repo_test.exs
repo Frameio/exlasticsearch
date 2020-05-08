@@ -1,11 +1,13 @@
 defmodule ExlasticSearch.RepoTest do
   use ExUnit.Case, async: true
+
   alias ExlasticSearch.{
     Repo,
     TestModel,
     Aggregation,
     Query
   }
+
   alias ExlasticSearch.MultiVersionTestModel, as: MVTestModel
 
   setup_all do
@@ -29,12 +31,113 @@ defmodule ExlasticSearch.RepoTest do
     end
   end
 
+  describe "#update" do
+    test "It will update an element in es" do
+      id = Ecto.UUID.generate()
+      model = %ExlasticSearch.TestModel{id: id, name: "test"}
+      Repo.index(model)
+
+      {:ok, _} = Repo.update(ExlasticSearch.TestModel, id, %{name: "test edited"})
+
+      {:ok, %{_source: data}} = Repo.get(model)
+      assert data.name == "test edited"
+    end
+  end
+
+  describe "#update_nested" do
+    test "It will add a new item to the nested property of an element in es" do
+      id = Ecto.UUID.generate()
+      model = %ExlasticSearch.TestModel{id: id, teams: []}
+      Repo.index(model)
+
+      source = "ctx._source.teams.add(params.data)"
+      team_data = %{name: "arsenal", rating: 100}
+      {:ok, _} = Repo.update_nested(ExlasticSearch.TestModel, id, source, team_data)
+
+      {:ok, %{_source: %{teams: [team]}}} = Repo.get(model)
+
+      assert team.name == "arsenal"
+      assert team.rating == 100
+    end
+
+    test "It will update an existing nested property of an element in es" do
+      id = Ecto.UUID.generate()
+      model = %ExlasticSearch.TestModel{id: id, teams: [%{name: "tottenham", rating: 0}]}
+      Repo.index(model)
+
+      source =
+        "ctx._source.teams.find(cf -> cf.name == params.data.name).rating = params.data.rating"
+
+      team_data = %{name: "tottenham", rating: -1}
+      {:ok, r} = Repo.update_nested(ExlasticSearch.TestModel, id, source, team_data)
+
+      {:ok, %{_source: %{teams: [team]}}} = Repo.get(model)
+
+      assert team.name == "tottenham"
+      assert team.rating == -1
+    end
+  end
+
   describe "#bulk" do
     test "It will bulk index/delete from es" do
       model = %ExlasticSearch.TestModel{id: Ecto.UUID.generate()}
       {:ok, _} = Repo.bulk([{:index, model}])
 
       assert exists?(model)
+    end
+
+    test "It will bulk update from es" do
+      model1 = %ExlasticSearch.TestModel{id: Ecto.UUID.generate(), name: "test 1"}
+      model2 = %ExlasticSearch.TestModel{id: Ecto.UUID.generate(), name: "test 2"}
+
+      Repo.index(model1)
+      Repo.index(model2)
+
+      {:ok, _} =
+        Repo.bulk([
+          {:update, ExlasticSearch.TestModel, model1.id, %{name: "test 1 edited"}},
+          {:update, ExlasticSearch.TestModel, model2.id, %{name: "test 2 edited"}}
+        ])
+
+      {:ok, %{_source: data1}} = Repo.get(model1)
+      {:ok, %{_source: data2}} = Repo.get(model2)
+
+      assert data1.name == "test 1 edited"
+      assert data2.name == "test 2 edited"
+    end
+
+    test "It will bulk update nested from es" do
+      model1 = %ExlasticSearch.TestModel{
+        id: Ecto.UUID.generate(),
+        teams: [%{name: "arsenal", rating: 100}]
+      }
+
+      model2 = %ExlasticSearch.TestModel{
+        id: Ecto.UUID.generate(),
+        teams: [%{name: "tottenham", rating: 0}]
+      }
+
+      Repo.index(model1)
+      Repo.index(model2)
+
+      source =
+        "ctx._source.teams.find(cf -> cf.name == params.data.name).rating = params.data.rating"
+
+      {:ok, _} =
+        Repo.bulk([
+          {:nested, ExlasticSearch.TestModel, model1.id, source,
+           %{name: "arsenal", rating: 1000}},
+          {:nested, ExlasticSearch.TestModel, model2.id, source, %{name: "tottenham", rating: -1}}
+        ])
+
+      {:ok, %{_source: %{teams: [team1]}}} = Repo.get(model1)
+      {:ok, %{_source: %{teams: [team2]}}} = Repo.get(model2)
+
+      assert team1.name == "arsenal"
+      assert team1.rating == 1000
+
+      assert team2.name == "tottenham"
+      assert team2.rating == -1
     end
   end
 
@@ -51,96 +154,112 @@ defmodule ExlasticSearch.RepoTest do
 
   describe "#aggregate/2" do
     test "It can perform terms aggreagtions" do
-      models = for i <- 1..3,
-        do: %TestModel{id: Ecto.UUID.generate(), name: "name #{i}", age: i}
+      models =
+        for i <- 1..3,
+            do: %TestModel{id: Ecto.UUID.generate(), name: "name #{i}", age: i}
 
-      {:ok, _} = Enum.map(models, & {:index, &1}) |> Repo.bulk()
+      {:ok, _} = Enum.map(models, &{:index, &1}) |> Repo.bulk()
 
       aggregation = Aggregation.new() |> Aggregation.terms(:age, field: :age, size: 2)
 
-      {:ok, %{body: %{
-        "aggregations" => %{
-          "age" => %{
-            "buckets" => buckets
-          }
-        }
-      }}} =
+      {:ok,
+       %{
+         body: %{
+           "aggregations" => %{
+             "age" => %{
+               "buckets" => buckets
+             }
+           }
+         }
+       }} =
         TestModel.search_query()
         |> Query.must(Query.match(:name, "name"))
         |> Repo.aggregate(aggregation)
 
       assert length(buckets) == 2
-      assert Enum.all?(buckets, & &1["key"] in [1, 2])
+      assert Enum.all?(buckets, &(&1["key"] in [1, 2]))
     end
 
     test "It can perform top_hits aggregations, even when nested" do
-      models = for i <- 1..3 do
-        %TestModel{
-          id: Ecto.UUID.generate(),
-          name: "name #{i}",
-          age: i,
-          group: (if rem(i, 2) == 0, do: "even", else: "odd")
-        }
-      end
+      models =
+        for i <- 1..3 do
+          %TestModel{
+            id: Ecto.UUID.generate(),
+            name: "name #{i}",
+            age: i,
+            group: if(rem(i, 2) == 0, do: "even", else: "odd")
+          }
+        end
 
-      {:ok, _} = Enum.map(models, & {:index, &1}) |> Repo.bulk()
+      {:ok, _} = Enum.map(models, &{:index, &1}) |> Repo.bulk()
 
       nested = Aggregation.new() |> Aggregation.top_hits(:hits, %{})
+
       aggregation =
         Aggregation.new()
         |> Aggregation.terms(:group, field: :group)
         |> Aggregation.nest(:group, nested)
 
-      {:ok, %{body: %{
-        "aggregations" => %{
-          "group" => %{
-            "buckets" => buckets
-          }
-        }
-      }}} =
+      {:ok,
+       %{
+         body: %{
+           "aggregations" => %{
+             "group" => %{
+               "buckets" => buckets
+             }
+           }
+         }
+       }} =
         TestModel.search_query()
         |> Query.must(Query.match(:name, "name"))
         |> Repo.aggregate(aggregation)
 
       assert length(buckets) == 2
-      assert Enum.all?(buckets, & !Enum.empty?(get_hits(&1)))
+      assert Enum.all?(buckets, &(!Enum.empty?(get_hits(&1))))
     end
 
     test "It can perform composite aggregations" do
-      models = for i <- 1..3 do
-        %TestModel{
-          id: Ecto.UUID.generate(),
-          name: "name #{i}",
-          age: i,
-          group: (if rem(i, 2) == 0, do: "even", else: "odd")
-        }
-      end
+      models =
+        for i <- 1..3 do
+          %TestModel{
+            id: Ecto.UUID.generate(),
+            name: "name #{i}",
+            age: i,
+            group: if(rem(i, 2) == 0, do: "even", else: "odd")
+          }
+        end
 
-      {:ok, _} = Enum.map(models, & {:index, &1}) |> Repo.bulk()
+      {:ok, _} = Enum.map(models, &{:index, &1}) |> Repo.bulk()
 
       sources = [
         Aggregation.composite_source(:group, :terms, field: :group, order: :desc),
         Aggregation.composite_source(:age, :terms, field: :age, order: :asc)
       ]
+
       aggregation = Aggregation.new() |> Aggregation.composite(:group, sources)
 
-      {:ok, %{body: %{
-        "aggregations" => %{
-          "group" => %{
-            "buckets" => buckets
-          }
-        }
-      }}} =
+      {:ok,
+       %{
+         body: %{
+           "aggregations" => %{
+             "group" => %{
+               "buckets" => buckets
+             }
+           }
+         }
+       }} =
         TestModel.search_query()
         |> Query.must(Query.match(:name, "name"))
         |> Repo.aggregate(aggregation)
 
       for i <- 1..3 do
         assert Enum.any?(buckets, fn
-          %{"key" => %{"age" => ^i, "group" => group}} ->
-            group == (if rem(i, 2) == 0, do: "even", else: "odd")
-          _ -> false
-        end)
+                 %{"key" => %{"age" => ^i, "group" => group}} ->
+                   group == if rem(i, 2) == 0, do: "even", else: "odd"
+
+                 _ ->
+                   false
+               end)
       end
     end
   end
