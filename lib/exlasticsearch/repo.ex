@@ -12,6 +12,7 @@ defmodule ExlasticSearch.Repo do
   use Scrivener
   use ExlasticSearch.Retry.Decorator
   alias ExlasticSearch.{Indexable, Query, Aggregation, Response}
+  alias ExlasticSearch.BulkOperation
   alias Elastix.{Index, Mapping, Document, Bulk, Search, HTTP}
   require Logger
 
@@ -187,6 +188,34 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
+  Generates an Elasticsearch bulk request. `operations` should be of the form:
+
+  Note: the last element in each Tuple is optional and will default to :index
+  ```
+  [
+    {:index, struct, index},
+    {:delete, other_struct, index},
+    {:update, third_struct, id, map, index},
+    {:nested, id, source, map, index}
+  ]
+  ```
+
+  The function will handle formatting the bulk request properly and passing each
+  struct to the `ExlasticSearch.Indexable` protocol
+  """
+  def bulk(operations, opts \\ []) do
+    bulk_request =
+      operations
+      |> Enum.map(&BulkOperation.bulk_operation/1)
+      |> Enum.concat()
+
+    es_url()
+    |> Bulk.post(bulk_request, [], opts)
+    |> log_response()
+    |> mark_failure()
+  end
+
+  @doc """
   Gets an ES document by _id
   """
   @spec get(struct) :: response
@@ -243,34 +272,6 @@ defmodule ExlasticSearch.Repo do
     |> mark_failure()
   end
 
-  @doc """
-  Generates an Elasticsearch bulk request. `operations` should be of the form:
-
-  Note: the last element in each Tuple is optional and will default to :index
-  ```
-  [
-    {:index, struct, index},
-    {:delete, other_struct, index},
-    {:update, third_struct, id, map, index},
-    {:nested, id, source, map, index}
-  ]
-  ```
-
-  The function will handle formatting the bulk request properly and passing each
-  struct to the `ExlasticSearch.Indexable` protocol
-  """
-  def bulk(operations, opts \\ []) do
-    bulk_request =
-      operations
-      |> Enum.map(&bulk_operation/1)
-      |> Enum.concat()
-
-    es_url()
-    |> Bulk.post(bulk_request, [], opts)
-    |> log_response()
-    |> mark_failure()
-  end
-
   def index_stream(stream, index \\ :index, parallelism \\ 10, demand \\ 10) do
     stream
     |> Stream.chunk_every(@chunk_size)
@@ -289,77 +290,6 @@ defmodule ExlasticSearch.Repo do
   defp log_response(response) do
     Logger.log(@log_level, fn -> "Elasticsearch  response: #{inspect(response)}" end)
     response
-  end
-
-  defp bulk_operation({:delete, _struct, _index} = instruction),
-    do: bulk_operation_delete(instruction)
-
-  defp bulk_operation({:delete, struct}),
-    do: bulk_operation_delete({:delete, struct, :index})
-
-  defp bulk_operation({:update, _struct, _id, _updates, _index} = instruction),
-    do: bulk_operation_update(instruction)
-
-  defp bulk_operation({:update, struct, id, updates}),
-    do: bulk_operation_update({:update, struct, id, updates, :index})
-
-  defp bulk_operation({:nested, _struct, _id, _source, _data, _index} = instruction),
-    do: bulk_operation_nested(instruction)
-
-  defp bulk_operation({:nested, struct, id, source, data}),
-    do: bulk_operation_nested({:nested, struct, id, source, data, :index})
-
-  defp bulk_operation({_op_type, _struct, _index} = instruction),
-    do: bulk_operation_default(instruction)
-
-  defp bulk_operation({op_type, struct}),
-    do: bulk_operation_default({op_type, struct, :index})
-
-  defp bulk_operation_default({op_type, %{__struct__: model} = struct, index}) do
-    [
-      %{
-        op_type => %{
-          _id: Indexable.id(struct),
-          _index: model.__es_index__(index),
-          _type: model.__doc_type__()
-        }
-      },
-      build_document(struct, index)
-    ]
-  end
-
-  defp bulk_operation_nested({:nested, struct, id, source, data, index}) do
-    data = data |> Map.drop([:document_id])
-
-    [
-      %{
-        update: %{
-          _id: id,
-          _index: struct.__es_index__(index),
-          _type: struct.__doc_type__()
-        }
-      },
-      %{script: %{source: source, params: %{data: data}}}
-    ]
-  end
-
-  defp bulk_operation_update({:update, struct, id, updates, index}) do
-    [
-      %{update: %{_id: id, _index: struct.__es_index__(index), _type: struct.__doc_type__()}},
-      %{doc: updates}
-    ]
-  end
-
-  defp bulk_operation_delete({:delete, %{__struct__: model} = struct, index}) do
-    [
-      %{
-        delete: %{
-          _id: Indexable.id(struct),
-          _index: model.__es_index__(index),
-          _type: model.__doc_type__()
-        }
-      }
-    ]
   end
 
   defp build_document(struct, index),
