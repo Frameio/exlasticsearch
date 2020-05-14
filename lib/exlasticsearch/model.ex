@@ -81,9 +81,7 @@ defmodule ExlasticSearch.Model do
       def __es_index__(:read), do: index_version(unquote(type), @read_version)
       def __es_index__(:index), do: index_version(unquote(type), @index_version)
       def __es_index__(:delete), do: __es_index__(:read)
-      def __es_index__(:read_sync_test), do: __es_index__(:read) <> "_sync"
-      def __es_index__(:index_sync_test), do: __es_index__(:index) <> "_sync"
-      def __es_index__(_), do: __es_index__(:read)
+      def __es_index__(custom_index), do: "#{unquote(type)}_#{custom_index}"
 
       def __es_mappings__() do
         @mapping_options
