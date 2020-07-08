@@ -179,6 +179,8 @@ defmodule ExlasticSearch.Query do
     do: %{function_score: transform_query(query)}
   defp query_clause(%__MODULE__{type: :nested} = query),
     do: %{nested: transform_query(query)}
+  defp query_clause(%__MODULE__{type: :constant_score} = query),
+    do: %{constant_score: include_if_present(query) |> Map.merge(query.options)}
   defp query_clause(%__MODULE__{} = query),
     do: %{bool: include_if_present(query) |> Map.merge(query.options)}
   defp query_clause(clauses) when is_list(clauses), do: Enum.map(clauses, &query_clause/1)
