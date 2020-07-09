@@ -23,3 +23,5 @@ erl_crash.dump
 exlasticsearch-*.tar
 
 .elixir_ls/
+/tags
+/TAGS
