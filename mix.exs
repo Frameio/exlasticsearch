@@ -1,7 +1,7 @@
 defmodule Exlasticsearch.MixProject do
   use Mix.Project
 
-  @version "1.7.0"
+  @version "1.8.0"
 
   def project do
     [
@@ -30,7 +30,7 @@ defmodule Exlasticsearch.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:flow, "~> 0.13"},
+      {:flow, "~> 1.0"},
       {:poison, "~> 3.1"},
       {:elastix, "~> 0.5.0"},
       {:ecto, ">= 2.1.0"},
