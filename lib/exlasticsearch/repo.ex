@@ -12,12 +12,14 @@ defmodule ExlasticSearch.Repo do
   use Scrivener
   use ExlasticSearch.Retry.Decorator
   alias ExlasticSearch.{Indexable, Query, Aggregation, Response}
+  alias ExlasticSearch.BulkOperation
   alias Elastix.{Index, Mapping, Document, Bulk, Search, HTTP}
   require Logger
 
   @chunk_size 2000
   @type response :: {:ok, %HTTPoison.Response{}} | {:error, any}
-  @log_level Application.get_env(:exlasticsearch, __MODULE__, []) |> Keyword.get(:log_level, :debug)
+  @log_level Application.get_env(:exlasticsearch, __MODULE__, [])
+             |> Keyword.get(:log_level, :debug)
 
   @doc """
   Creates an index as defined in `model`
@@ -31,24 +33,24 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Updates the index for `model`
   """
-  def update_index(model) do
-    url = es_url() <> "/#{model.__es_index__(:index)}/_settings"
+  def update_index(model, index \\ :index) do
+    url = es_url() <> "/#{model.__es_index__(index)}/_settings"
     HTTP.put(url, Poison.encode!(model.__es_settings__()))
   end
 
   @doc """
   Close an index for `model`
   """
-  def close_index(model) do
-    url = es_url() <> "/#{model.__es_index__(:index)}/_close"
+  def close_index(model, index \\ :index) do
+    url = es_url() <> "/#{model.__es_index__(index)}/_close"
     HTTP.post(url, "")
   end
 
   @doc """
   open an index for `model`
   """
-  def open_index(model) do
-    url = es_url() <> "/#{model.__es_index__(:index)}/_open"
+  def open_index(model, index \\ :index) do
+    url = es_url() <> "/#{model.__es_index__(index)}/_open"
     HTTP.post(url, "")
   end
 
@@ -83,18 +85,20 @@ defmodule ExlasticSearch.Repo do
   @spec create_alias(atom, [{atom, atom}]) :: response
   def create_alias(model, [{from, target}]) do
     url = "#{es_url()}/_aliases"
-    from_index   = model.__es_index__(from)
+    from_index = model.__es_index__(from)
     target_index = model.__es_index__(target)
-    json = Poison.encode!(%{
-      actions: [
-        %{
-          add: %{
-            index: from_index,
-            alias: target_index
-          },
-        }
-      ]
-    })
+
+    json =
+      Poison.encode!(%{
+        actions: [
+          %{
+            add: %{
+              index: from_index,
+              alias: target_index
+            }
+          }
+        ]
+      })
 
     HTTP.post(url, json)
   end
@@ -102,11 +106,11 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Deletes the read index and aliases the write index to it
   """
-  @spec rotate(atom) :: response
-  def rotate(model) do
-    with false <- model.__es_index__(:read) == model.__es_index__(:index),
-         _result <- delete_index(model, :read),
-      do: create_alias(model, index: :read)
+  @spec rotate(atom, atom, atom) :: response
+  def rotate(model, read \\ :read, index \\ :index) do
+    with false <- model.__es_index__(read) == model.__es_index__(index),
+         _result <- delete_index(model, read),
+         do: create_alias(model, index: read)
   end
 
   @doc """
@@ -136,9 +140,9 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Refreshes `model`'s index
   """
-  def refresh(model) do
+  def refresh(model, index \\ :read) do
     es_url()
-    |> Index.refresh(model.__es_index__())
+    |> Index.refresh(model.__es_index__(index))
   end
 
   @doc """
@@ -147,12 +151,66 @@ defmodule ExlasticSearch.Repo do
   """
   @spec index(struct) :: response
   @decorate retry()
-  def index(%{__struct__: model} = struct) do
+  def index(%{__struct__: model} = struct, index \\ :index) do
     id = Indexable.id(struct)
-    document = build_document(struct)
+    document = build_document(struct, index)
 
     es_url()
-    |> Document.index(model.__es_index__(:index), model.__doc_type__(), id, document)
+    |> Document.index(model.__es_index__(index), model.__doc_type__(), id, document)
+    |> log_response()
+    |> mark_failure()
+  end
+
+  @doc """
+  Updates the document of the passed in id for the index associated to the model
+  """
+  @decorate retry()
+  def update(model, id, updates, index \\ :index) do
+    es_url()
+    |> Document.update(model.__es_index__(index), model.__doc_type__(), id, %{doc: updates})
+    |> log_response()
+    |> mark_failure()
+  end
+
+  @doc """
+  Updates a nested field of the document of the passed in id for the index associated to the model.
+
+  the source param is the script you want to apply for the update.
+  """
+  @decorate retry()
+  def update_nested(model, id, source, updates, index \\ :index) do
+    es_url()
+    |> Document.update(model.__es_index__(index), model.__doc_type__(), id, %{
+      script: %{source: source, params: %{data: updates}}
+    })
+    |> log_response()
+    |> mark_failure()
+  end
+
+  @doc """
+  Generates an Elasticsearch bulk request. `operations` should be of the form:
+
+  Note: the last element in each Tuple is optional and will default to :index
+  ```
+  [
+    {:index, struct, index},
+    {:delete, other_struct, index},
+    {:update, third_struct, id, map, index},
+    {:nested, id, source, map, index}
+  ]
+  ```
+
+  The function will handle formatting the bulk request properly and passing each
+  struct to the `ExlasticSearch.Indexable` protocol
+  """
+  def bulk(operations, opts \\ []) do
+    bulk_request =
+      operations
+      |> Enum.map(&BulkOperation.bulk_operation/1)
+      |> Enum.concat()
+
+    es_url()
+    |> Bulk.post(bulk_request, [], opts)
     |> log_response()
     |> mark_failure()
   end
@@ -171,7 +229,7 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Creates a call to `search/3` by realizing `query` (using `Exlasticsearch.Query.realize/1`) and any provided search opts
   """
-  @spec search(Query.t, list) :: response
+  @spec search(Query.t(), list) :: response
   def search(%Query{queryable: model} = query, params),
     do: search(model, Query.realize(query), params, query.index_type || :read)
 
@@ -193,11 +251,13 @@ defmodule ExlasticSearch.Repo do
     search =
       Query.realize(query)
       |> Map.merge(Aggregation.realize(aggregation))
+
     index_type = query.index_type || :read
 
     es_url()
     |> Search.search(model.__es_index__(index_type), [model.__doc_type__()], search, size: 0)
-    |> log_response() # TODO: figure out how to decode these, it's not trivial to type them
+    # TODO: figure out how to decode these, it's not trivial to type them
+    |> log_response()
   end
 
   @doc """
@@ -205,49 +265,23 @@ defmodule ExlasticSearch.Repo do
   """
   @spec delete(struct) :: response
   @decorate retry()
-  def delete(%{__struct__: model} = struct) do
+  def delete(%{__struct__: model} = struct, index \\ :index) do
     es_url()
-    |> Document.delete(model.__es_index__(:index), model.__doc_type__(), Indexable.id(struct))
+    |> Document.delete(model.__es_index__(index), model.__doc_type__(), Indexable.id(struct))
     |> log_response()
     |> mark_failure()
   end
 
-
-  @doc """
-  Generates an Elasticsearch bulk request. `operations` should be of the form:
-
-  ```
-  [
-    {:index, struct},
-    {:delete, other_struct},
-    {:update, third_struct}
-  ]
-  ```
-
-  The function will handle formatting the bulk request properly and passing each
-  struct to the `ExlasticSearch.Indexable` protocol
-  """
-  def bulk(operations, opts \\ []) do
-    bulk_request = operations
-                   |> Enum.map(&bulk_operation/1)
-                   |> Enum.concat()
-
-    es_url()
-    |> Bulk.post(bulk_request, [], opts)
-    |> log_response()
-    |> mark_failure()
-  end
-
-  def index_stream(stream, parallelism \\ 10, demand \\ 10) do
+  def index_stream(stream, index \\ :index, parallelism \\ 10, demand \\ 10) do
     stream
     |> Stream.chunk_every(@chunk_size)
     |> Flow.from_enumerable(stages: parallelism, max_demand: demand)
-    |> Flow.map(&insert_chunk/1)
+    |> Flow.map(&insert_chunk(&1, index))
   end
 
-  defp insert_chunk(chunk) do
+  defp insert_chunk(chunk, index) do
     chunk
-    |> Enum.map(& {:index, &1})
+    |> Enum.map(&{:index, &1, index})
     |> bulk()
 
     length(chunk)
@@ -258,16 +292,8 @@ defmodule ExlasticSearch.Repo do
     response
   end
 
-  defp bulk_operation({:delete, %{__struct__: model} = struct}),
-    do: [%{delete: %{_id: Indexable.id(struct), _index: model.__es_index__(:index), _type: model.__doc_type__()}}]
-  defp bulk_operation({op_type, %{__struct__: model} = struct}) do
-    [
-      %{op_type => %{_id: Indexable.id(struct), _index: model.__es_index__(:index), _type: model.__doc_type__()}},
-      build_document(struct)
-    ]
-  end
-
-  defp build_document(struct), do: struct |> Indexable.preload() |> Indexable.document()
+  defp build_document(struct, index),
+    do: struct |> Indexable.preload(index) |> Indexable.document(index)
 
   defp es_url(), do: Application.get_env(:exlasticsearch, __MODULE__)[:url]
 
@@ -277,9 +303,16 @@ defmodule ExlasticSearch.Repo do
       result -> {:ok, result}
     end
   end
+
   defp decode(response, _, _), do: response
 
-  defp mark_failure({:ok, %HTTPoison.Response{body: %{"_shards" => %{"successful" => 0}}} = result}), do: {:error, result}
-  defp mark_failure({:ok, %HTTPoison.Response{body: %{"errors" => true}} = result}), do: {:error, result}
+  defp mark_failure(
+         {:ok, %HTTPoison.Response{body: %{"_shards" => %{"successful" => 0}}} = result}
+       ),
+       do: {:error, result}
+
+  defp mark_failure({:ok, %HTTPoison.Response{body: %{"errors" => true}} = result}),
+    do: {:error, result}
+
   defp mark_failure(result), do: result
 end
