@@ -23,29 +23,29 @@ defmodule ExlasticSearch.Response do
     quote do
       import ExlasticSearch.Response
 
-      def parse(record, model) do
+      def parse(record, model, index_type) do
         __schema__(:parse_spec)
         |> convert_keys(record)
-        |> parse_associations(__schema__(:associations), model)
-        |> to_model(model)
+        |> parse_associations(__schema__(:associations), model, index_type)
+        |> to_model(model, index_type)
         |> new()
       end
 
-      def to_model(struct, model), do: struct
+      def to_model(struct, model, index_type), do: struct
 
       def new(map), do: struct(__MODULE__, map)
 
-      defoverridable [to_model: 2]
+      defoverridable [to_model: 3]
     end
   end
 
   @doc """
   Utility for recursively parsing response associations
   """
-  def parse_associations(response, associations, model) do
+  def parse_associations(response, associations, model, index_type) do
     associations
     |> Enum.map(fn {type, field, parser} ->
-      {field, parse_assoc(type, response[field], &parser.parse(&1, model))}
+      {field, parse_assoc(type, response[field], &parser.parse(&1, model, index_type))}
     end)
     |> Enum.into(response)
   end
