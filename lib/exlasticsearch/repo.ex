@@ -26,7 +26,7 @@ defmodule ExlasticSearch.Repo do
   """
   @spec create_index(atom) :: response
   def create_index(model, index \\ :index) do
-    es_url()
+    es_url(index)
     |> Index.create(model.__es_index__(index), model.__es_settings__())
   end
 
@@ -34,7 +34,7 @@ defmodule ExlasticSearch.Repo do
   Updates the index for `model`
   """
   def update_index(model, index \\ :index) do
-    url = es_url() <> "/#{model.__es_index__(index)}/_settings"
+    url = es_url(index) <> "/#{model.__es_index__(index)}/_settings"
     HTTP.put(url, Poison.encode!(model.__es_settings__()))
   end
 
@@ -42,7 +42,7 @@ defmodule ExlasticSearch.Repo do
   Close an index for `model`
   """
   def close_index(model, index \\ :index) do
-    url = es_url() <> "/#{model.__es_index__(index)}/_close"
+    url = es_url(index) <> "/#{model.__es_index__(index)}/_close"
     HTTP.post(url, "")
   end
 
@@ -50,7 +50,7 @@ defmodule ExlasticSearch.Repo do
   open an index for `model`
   """
   def open_index(model, index \\ :index) do
-    url = es_url() <> "/#{model.__es_index__(index)}/_open"
+    url = es_url(index) <> "/#{model.__es_index__(index)}/_open"
     HTTP.post(url, "")
   end
 
@@ -59,7 +59,7 @@ defmodule ExlasticSearch.Repo do
   """
   @spec create_mapping(atom) :: response
   def create_mapping(model, index \\ :index) do
-    es_url()
+    es_url(index)
     |> Mapping.put(model.__es_index__(index), model.__doc_type__(), model.__es_mappings__())
   end
 
@@ -68,7 +68,7 @@ defmodule ExlasticSearch.Repo do
   """
   @spec delete_index(atom) :: response
   def delete_index(model, index \\ :index) do
-    es_url()
+    es_url(index)
     |> Index.delete(model.__es_index__(index))
   end
 
@@ -83,8 +83,8 @@ defmodule ExlasticSearch.Repo do
   against it's indexing version
   """
   @spec create_alias(atom, [{atom, atom}]) :: response
-  def create_alias(model, [{from, target}]) do
-    url = "#{es_url()}/_aliases"
+  def create_alias(model, [{from, target}], index \\ :index) do
+    url = "#{es_url(index)}/_aliases"
     from_index = model.__es_index__(from)
     target_index = model.__es_index__(target)
 
@@ -119,7 +119,7 @@ defmodule ExlasticSearch.Repo do
   @spec get_alias(atom, atom) :: response
   def get_alias(model, index) when is_atom(index) do
     index_name = model.__es_index__(index)
-    url = "#{es_url()}/#{index_name}/_alias/*"
+    url = "#{es_url(index)}/#{index_name}/_alias/*"
 
     HTTP.get(url)
   end
@@ -129,7 +129,7 @@ defmodule ExlasticSearch.Repo do
   """
   @spec exists?(atom) :: boolean
   def exists?(model, index \\ :read) do
-    es_url()
+    es_url(index)
     |> Index.exists?(model.__es_index__(index))
     |> case do
       {:ok, result} -> result
@@ -141,7 +141,7 @@ defmodule ExlasticSearch.Repo do
   Refreshes `model`'s index
   """
   def refresh(model, index \\ :read) do
-    es_url()
+    es_url(index)
     |> Index.refresh(model.__es_index__(index))
   end
 
@@ -155,7 +155,7 @@ defmodule ExlasticSearch.Repo do
     id = Indexable.id(struct)
     document = build_document(struct, index)
 
-    es_url()
+    es_url(index)
     |> Document.index(model.__es_index__(index), model.__doc_type__(), id, document)
     |> log_response()
     |> mark_failure()
@@ -166,7 +166,7 @@ defmodule ExlasticSearch.Repo do
   """
   @decorate retry()
   def update(model, id, updates, index \\ :index) do
-    es_url()
+    es_url(index)
     |> Document.update(model.__es_index__(index), model.__doc_type__(), id, %{doc: updates})
     |> log_response()
     |> mark_failure()
@@ -179,7 +179,7 @@ defmodule ExlasticSearch.Repo do
   """
   @decorate retry()
   def update_nested(model, id, source, updates, index \\ :index) do
-    es_url()
+    es_url(index)
     |> Document.update(model.__es_index__(index), model.__doc_type__(), id, %{
       script: %{source: source, params: %{data: updates}}
     })
@@ -203,13 +203,13 @@ defmodule ExlasticSearch.Repo do
   The function will handle formatting the bulk request properly and passing each
   struct to the `ExlasticSearch.Indexable` protocol
   """
-  def bulk(operations, opts \\ []) do
+  def bulk(operations, index \\ :index, opts \\ []) do
     bulk_request =
       operations
       |> Enum.map(&BulkOperation.bulk_operation/1)
       |> Enum.concat()
 
-    es_url()
+    es_url(index)
     |> Bulk.post(bulk_request, [], opts)
     |> log_response()
     |> mark_failure()
@@ -220,7 +220,7 @@ defmodule ExlasticSearch.Repo do
   """
   @spec get(struct) :: response
   def get(%{__struct__: model} = struct, index_type \\ :read) do
-    es_url()
+    es_url(index_type)
     |> Document.get(model.__es_index__(index_type), model.__doc_type__(), Indexable.id(struct))
     |> log_response()
     |> decode(Response.Record, model)
@@ -241,7 +241,7 @@ defmodule ExlasticSearch.Repo do
     index = model_to_index(model, index_type)
     doc_types = model_to_doc_types(model)
 
-    es_url()
+    es_url(index_type)
     |> Search.search(index, doc_types, search, params)
     |> log_response()
     |> decode(Response.Search, model, index_type)
@@ -270,7 +270,7 @@ defmodule ExlasticSearch.Repo do
 
     index_type = query.index_type || :read
 
-    es_url()
+    es_url(index_type)
     |> Search.search(model.__es_index__(index_type), [model.__doc_type__()], search, size: 0)
     # TODO: figure out how to decode these, it's not trivial to type them
     |> log_response()
@@ -282,7 +282,7 @@ defmodule ExlasticSearch.Repo do
   @spec delete(struct) :: response
   @decorate retry()
   def delete(%{__struct__: model} = struct, index \\ :index) do
-    es_url()
+    es_url(index)
     |> Document.delete(model.__es_index__(index), model.__doc_type__(), Indexable.id(struct))
     |> log_response()
     |> mark_failure()
@@ -311,7 +311,15 @@ defmodule ExlasticSearch.Repo do
   defp build_document(struct, index),
     do: struct |> Indexable.preload(index) |> Indexable.document(index)
 
-  defp es_url(), do: Application.get_env(:exlasticsearch, __MODULE__)[:url]
+  defp es_url(index) do
+
+    case Application.get_env(:exlasticsearch, __MODULE__)[index] do
+      nil ->
+        Application.get_env(:exlasticsearch, __MODULE__)[:url]
+      url ->
+        url
+    end
+  end
 
   defp decode(result, response, model, index_type \\ :read)
   defp decode({:ok, %HTTPoison.Response{body: body}}, response, model, index_type) do
