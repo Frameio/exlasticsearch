@@ -238,11 +238,27 @@ defmodule ExlasticSearch.Repo do
   """
   @spec search(atom, map, list) :: response
   def search(model, search, params, index_type \\ :read) do
+    index = model_to_index(model, index_type)
+    doc_types = model_to_doc_types(model)
+
     es_url()
-    |> Search.search(model.__es_index__(index_type), [model.__doc_type__()], search, params)
+    |> Search.search(index, doc_types, search, params)
     |> log_response()
-    |> decode(Response.Search, model)
+    |> decode(Response.Search, model, index_type)
   end
+
+  defp model_to_index(models, index_type) when is_list(models) do
+    models
+    |> Enum.map(& &1.__es_index__(index_type))
+    |> Enum.join(",")
+  end
+  defp model_to_index(model, index_type), do: model.__es_index__(index_type)
+
+  defp model_to_doc_types(models) when is_list(models) do
+    models
+    |> Enum.map(& &1.__doc_type__())
+  end
+  defp model_to_doc_types(model), do: [model.__doc_type__()]
 
   @doc """
   Performs an aggregation against a query, and returns only the aggregation results.
@@ -297,14 +313,15 @@ defmodule ExlasticSearch.Repo do
 
   defp es_url(), do: Application.get_env(:exlasticsearch, __MODULE__)[:url]
 
-  defp decode({:ok, %HTTPoison.Response{body: body}}, response, model) do
-    case response.parse(body, model) do
+  defp decode(result, response, model, index_type \\ :read)
+  defp decode({:ok, %HTTPoison.Response{body: body}}, response, model, index_type) do
+    case response.parse(body, model, index_type) do
       nil -> {:error, :not_found}
       result -> {:ok, result}
     end
   end
 
-  defp decode(response, _, _), do: response
+  defp decode(response, _, _, _), do: response
 
   defp mark_failure(
          {:ok, %HTTPoison.Response{body: %{"_shards" => %{"successful" => 0}}} = result}

@@ -4,6 +4,7 @@ defmodule ExlasticSearch.RepoTest do
   alias ExlasticSearch.{
     Repo,
     TestModel,
+    TestModel2,
     Aggregation,
     Query
   }
@@ -11,12 +12,19 @@ defmodule ExlasticSearch.RepoTest do
   alias ExlasticSearch.MultiVersionTestModel, as: MVTestModel
 
   setup_all do
+    Repo.delete_index(TestModel)
     Repo.create_index(TestModel)
     Repo.create_mapping(TestModel)
 
+    Repo.delete_index(TestModel2)
+    Repo.create_index(TestModel2)
+    Repo.create_mapping(TestModel2)
+
+    Repo.delete_index(MVTestModel)
     Repo.create_index(MVTestModel)
     Repo.create_mapping(MVTestModel)
 
+    Repo.delete_index(MVTestModel, :read)
     Repo.create_index(MVTestModel, :read)
     Repo.create_mapping(MVTestModel, :read)
     :ok
@@ -69,7 +77,7 @@ defmodule ExlasticSearch.RepoTest do
         "ctx._source.teams.find(cf -> cf.name == params.data.name).rating = params.data.rating"
 
       team_data = %{name: "tottenham", rating: -1}
-      {:ok, r} = Repo.update_nested(ExlasticSearch.TestModel, id, source, team_data)
+      {:ok, _result} = Repo.update_nested(ExlasticSearch.TestModel, id, source, team_data)
 
       {:ok, %{_source: %{teams: [team]}}} = Repo.get(model)
 
@@ -160,6 +168,8 @@ defmodule ExlasticSearch.RepoTest do
 
       {:ok, _} = Enum.map(models, &{:index, &1}) |> Repo.bulk()
 
+      Repo.refresh(TestModel)
+
       aggregation = Aggregation.new() |> Aggregation.terms(:age, field: :age, size: 2)
 
       {:ok,
@@ -192,6 +202,8 @@ defmodule ExlasticSearch.RepoTest do
         end
 
       {:ok, _} = Enum.map(models, &{:index, &1}) |> Repo.bulk()
+
+      Repo.refresh(TestModel)
 
       nested = Aggregation.new() |> Aggregation.top_hits(:hits, %{})
 
@@ -231,6 +243,8 @@ defmodule ExlasticSearch.RepoTest do
 
       {:ok, _} = Enum.map(models, &{:index, &1}) |> Repo.bulk()
 
+      Repo.refresh(TestModel)
+
       sources = [
         Aggregation.composite_source(:group, :terms, field: :group, order: :desc),
         Aggregation.composite_source(:age, :terms, field: :age, order: :asc)
@@ -261,6 +275,77 @@ defmodule ExlasticSearch.RepoTest do
                    false
                end)
       end
+    end
+  end
+
+  describe "#search/2" do
+    test "It will search in a single index" do
+      id1 = Ecto.UUID.generate()
+      id2 = Ecto.UUID.generate()
+      id3 = Ecto.UUID.generate()
+
+      rand_name = Ecto.UUID.generate() |> String.replace("-", "")
+
+      model1 = %TestModel{id: id1, name: rand_name}
+      model2 = %TestModel{id: id2, name: rand_name}
+      model3 = %TestModel{id: id3, name: "something else"}
+
+      Repo.index(model1)
+      Repo.index(model2)
+      Repo.index(model3)
+
+      Repo.refresh(TestModel)
+
+      query = %ExlasticSearch.Query{
+        queryable: ExlasticSearch.TestModel,
+        filter: [
+          %{term: %{name: rand_name}}
+        ]
+      }
+
+      {:ok, %{hits: %{hits: results}}} = Repo.search(query, [])
+
+      assert length(results) == 2
+      assert Enum.find(results, & &1._id == id1)
+      assert Enum.find(results, & &1._id == id2)
+    end
+
+    test "It will search in a multiple indexes" do
+      id1 = Ecto.UUID.generate()
+      id2 = Ecto.UUID.generate()
+      id3 = Ecto.UUID.generate()
+      id4 = Ecto.UUID.generate()
+
+      rand_name = Ecto.UUID.generate() |> String.replace("-", "")
+
+      model1 = %TestModel{id: id1, name: rand_name}
+      model2 = %TestModel{id: id2, name: rand_name}
+      model3 = %TestModel{id: id3, name: "something else"}
+
+      model4 = %TestModel2{id: id4, name: rand_name}
+
+      Repo.index(model1)
+      Repo.index(model2)
+      Repo.index(model3)
+
+      Repo.index(model4)
+
+      Repo.refresh(TestModel)
+      Repo.refresh(TestModel2)
+
+      query = %ExlasticSearch.Query{
+        queryable: [ExlasticSearch.TestModel, ExlasticSearch.TestModel2],
+        filter: [
+          %{term: %{name: rand_name}}
+        ]
+      }
+
+      {:ok, %{hits: %{hits: results}}} = Repo.search(query, [])
+
+      assert length(results) == 3
+      assert Enum.find(results, & &1._id == id1)
+      assert Enum.find(results, & &1._id == id2)
+      assert Enum.find(results, & &1._id == id4)
     end
   end
 
