@@ -298,7 +298,7 @@ defmodule ExlasticSearch.Repo do
   defp insert_chunk(chunk, index) do
     chunk
     |> Enum.map(&{:index, &1, index})
-    |> bulk()
+    |> bulk(index)
 
     length(chunk)
   end
