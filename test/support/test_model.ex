@@ -78,11 +78,19 @@ defimpl ExlasticSearch.Indexable,
   for: [ExlasticSearch.TestModel, ExlasticSearch.TestModel2, ExlasticSearch.MultiVersionTestModel] do
   def id(%{id: id}), do: id
 
+  def document(struct) do
+    struct
+    |> Map.from_struct()
+    |> Map.take(@for.__mappings__())
+  end
+
   def document(struct, _) do
     struct
     |> Map.from_struct()
     |> Map.take(@for.__mappings__())
   end
+
+  def preload(struct), do: struct
 
   def preload(struct, _), do: struct
 end

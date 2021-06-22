@@ -216,6 +216,16 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
+  Updates all document based on the query using the provided script.
+  """
+  def update_by_query(model, query, script, index \\ :index) do
+    es_url(index)
+    |> Document.update_by_query(model.__es_index__(index), query, script)
+    |> log_response()
+    |> mark_failure()
+  end
+
+  @doc """
   Gets an ES document by _id
   """
   @spec get(struct) :: response

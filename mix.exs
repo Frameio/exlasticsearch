@@ -32,7 +32,7 @@ defmodule Exlasticsearch.MixProject do
     [
       {:flow, "~> 1.0"},
       {:poison, "~> 3.1"},
-      {:elastix, "~> 0.5.0"},
+      {:elastix, "~> 0.10.0"},
       {:ecto, ">= 2.1.0"},
       {:scrivener_ecto, "~> 2.0"},
       {:decorator, "~> 1.2"},
