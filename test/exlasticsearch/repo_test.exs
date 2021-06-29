@@ -45,44 +45,10 @@ defmodule ExlasticSearch.RepoTest do
       model = %ExlasticSearch.TestModel{id: id, name: "test"}
       Repo.index(model)
 
-      {:ok, _} = Repo.update(ExlasticSearch.TestModel, id, %{name: "test edited"})
+      {:ok, _} = Repo.update(ExlasticSearch.TestModel, id, %{doc: %{name: "test edited"}})
 
       {:ok, %{_source: data}} = Repo.get(model)
       assert data.name == "test edited"
-    end
-  end
-
-  describe "#update_nested" do
-    test "It will add a new item to the nested property of an element in es" do
-      id = Ecto.UUID.generate()
-      model = %ExlasticSearch.TestModel{id: id, teams: []}
-      Repo.index(model)
-
-      source = "ctx._source.teams.add(params.data)"
-      team_data = %{name: "arsenal", rating: 100}
-      {:ok, _} = Repo.update_nested(ExlasticSearch.TestModel, id, source, team_data)
-
-      {:ok, %{_source: %{teams: [team]}}} = Repo.get(model)
-
-      assert team.name == "arsenal"
-      assert team.rating == 100
-    end
-
-    test "It will update an existing nested property of an element in es" do
-      id = Ecto.UUID.generate()
-      model = %ExlasticSearch.TestModel{id: id, teams: [%{name: "tottenham", rating: 0}]}
-      Repo.index(model)
-
-      source =
-        "ctx._source.teams.find(cf -> cf.name == params.data.name).rating = params.data.rating"
-
-      team_data = %{name: "tottenham", rating: -1}
-      {:ok, _result} = Repo.update_nested(ExlasticSearch.TestModel, id, source, team_data)
-
-      {:ok, %{_source: %{teams: [team]}}} = Repo.get(model)
-
-      assert team.name == "tottenham"
-      assert team.rating == -1
     end
   end
 
@@ -103,8 +69,8 @@ defmodule ExlasticSearch.RepoTest do
 
       {:ok, _} =
         Repo.bulk([
-          {:update, ExlasticSearch.TestModel, model1.id, %{name: "test 1 edited"}},
-          {:update, ExlasticSearch.TestModel, model2.id, %{name: "test 2 edited"}}
+          {:update, ExlasticSearch.TestModel, model1.id, %{doc: %{name: "test 1 edited"}}},
+          {:update, ExlasticSearch.TestModel, model2.id, %{doc: %{name: "test 2 edited"}}}
         ])
 
       {:ok, %{_source: data1}} = Repo.get(model1)
@@ -131,11 +97,13 @@ defmodule ExlasticSearch.RepoTest do
       source =
         "ctx._source.teams.find(cf -> cf.name == params.data.name).rating = params.data.rating"
 
+        data1 = %{script: %{source: source, params: %{data: %{name: "arsenal", rating: 1000}}}}
+        data2 = %{script: %{source: source, params: %{data: %{name: "tottenham", rating: -1}}}}
+
       {:ok, _} =
         Repo.bulk([
-          {:nested, ExlasticSearch.TestModel, model1.id, source,
-           %{name: "arsenal", rating: 1000}},
-          {:nested, ExlasticSearch.TestModel, model2.id, source, %{name: "tottenham", rating: -1}}
+          {:update, ExlasticSearch.TestModel, model1.id, data1},
+          {:update, ExlasticSearch.TestModel, model2.id, data2}
         ])
 
       {:ok, %{_source: %{teams: [team1]}}} = Repo.get(model1)

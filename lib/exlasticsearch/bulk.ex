@@ -6,7 +6,7 @@ defmodule ExlasticSearch.BulkOperation do
   alias ExlasticSearch.Indexable
 
   @doc """
-  Generates a request for inserts, updates, nested property update and deletes
+  Generates a request for inserts, updates and deletes
   that can be sent as a bulk request using Elastix
   """
   def bulk_operation({:delete, _struct, _index} = instruction),
@@ -15,17 +15,11 @@ defmodule ExlasticSearch.BulkOperation do
   def bulk_operation({:delete, struct}),
     do: bulk_operation_delete({:delete, struct, :index})
 
-  def bulk_operation({:update, _struct, _id, _updates, _index} = instruction),
+  def bulk_operation({:update, _struct, _id, _data, _index} = instruction),
     do: bulk_operation_update(instruction)
 
-  def bulk_operation({:update, struct, id, updates}),
-    do: bulk_operation_update({:update, struct, id, updates, :index})
-
-  def bulk_operation({:nested, _struct, _id, _source, _data, _index} = instruction),
-    do: bulk_operation_nested(instruction)
-
-  def bulk_operation({:nested, struct, id, source, data}),
-    do: bulk_operation_nested({:nested, struct, id, source, data, :index})
+  def bulk_operation({:update, struct, id, data}),
+    do: bulk_operation_update({:update, struct, id, data, :index})
 
   def bulk_operation({_op_type, _struct, _index} = instruction),
     do: bulk_operation_default(instruction)
@@ -46,25 +40,10 @@ defmodule ExlasticSearch.BulkOperation do
     ]
   end
 
-  defp bulk_operation_nested({:nested, struct, id, source, data, index}) do
-    data = data |> Map.drop([:document_id])
-
-    [
-      %{
-        update: %{
-          _id: id,
-          _index: struct.__es_index__(index),
-          _type: struct.__doc_type__()
-        }
-      },
-      %{script: %{source: source, params: %{data: data}}}
-    ]
-  end
-
-  defp bulk_operation_update({:update, struct, id, updates, index}) do
+  defp bulk_operation_update({:update, struct, id, data, index}) do
     [
       %{update: %{_id: id, _index: struct.__es_index__(index), _type: struct.__doc_type__()}},
-      %{doc: updates}
+      data
     ]
   end
 
