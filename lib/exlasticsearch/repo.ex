@@ -165,24 +165,9 @@ defmodule ExlasticSearch.Repo do
   Updates the document of the passed in id for the index associated to the model
   """
   @decorate retry()
-  def update(model, id, updates, index \\ :index) do
+  def update(model, id, data, index \\ :index) do
     es_url(index)
-    |> Document.update(model.__es_index__(index), model.__doc_type__(), id, %{doc: updates})
-    |> log_response()
-    |> mark_failure()
-  end
-
-  @doc """
-  Updates a nested field of the document of the passed in id for the index associated to the model.
-
-  the source param is the script you want to apply for the update.
-  """
-  @decorate retry()
-  def update_nested(model, id, source, updates, index \\ :index) do
-    es_url(index)
-    |> Document.update(model.__es_index__(index), model.__doc_type__(), id, %{
-      script: %{source: source, params: %{data: updates}}
-    })
+    |> Document.update(model.__es_index__(index), model.__doc_type__(), id, data)
     |> log_response()
     |> mark_failure()
   end
@@ -195,8 +180,7 @@ defmodule ExlasticSearch.Repo do
   [
     {:index, struct, index},
     {:delete, other_struct, index},
-    {:update, third_struct, id, map, index},
-    {:nested, id, source, map, index}
+    {:update, third_struct, id, map, index}
   ]
   ```
 
