@@ -1,11 +1,11 @@
 defmodule ExlasticSearch.TypeInference.Base do
   @moduledoc """
-  Implementation of type infernce for builtin ecto types
+  Implementation of type inference for builtin Ecto types.
   """
   defmacro __using__(_) do
     quote do
       @behaviour ExlasticSearch.TypeInference.API
-      
+
       def infer(:binary_id), do: :keyword
       def infer(:integer), do: :long
       def infer(:float), do: :double

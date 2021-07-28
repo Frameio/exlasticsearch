@@ -1,10 +1,13 @@
 defmodule ExlasticSearch.Retry.Decorator do
   @moduledoc """
-  Decorator for applying retry strategies to a function.  Configure with
+  Decorator for applying retry strategies to a function.
 
-  ```
+  Configure with:
+
+  ```elixir
   config :exlasticsearch, :retry, strategy: MyStrategy, additional_opts
   ```
+
   """
   use Decorator.Define, retry: 0
   @config Application.get_env(:exlasticsearch, :retry, [])

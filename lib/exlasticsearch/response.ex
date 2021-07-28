@@ -1,10 +1,12 @@
 defmodule ExlasticSearch.Response do
   @moduledoc """
-  Base module for ES response parsing.  Works off a few macros, `schema/1`, `field/1`, `has_many/2`, `has_one/2`
+  Base module for ES response parsing.
+
+  Works off a few macros, `schema/1`, `field/1`, `has_many/2`, `has_one/2`
 
   The usage is more or less:
 
-  ```
+  ```elixir
   use ExlasticSearch.Response
 
   schema do
@@ -40,7 +42,7 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Utility for recursively parsing response associations
+  Utility for recursively parsing response associations.
   """
   def parse_associations(response, associations, model, index_type) do
     associations
@@ -51,7 +53,7 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Safe conversion of string keyed ES response maps to structifiable atom keyed maps
+  Safe conversion of string keyed ES response maps to structifiable atom keyed maps.
   """
   def convert_keys(conversion_table, map) when is_map(map) do
     conversion_table
@@ -98,7 +100,7 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Adds a simple field attribute
+  Adds a simple field attribute.
   """
   defmacro field(field) do
     quote do
@@ -107,7 +109,7 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Adds a has_many relation or the parser, which assumes a list value
+  Adds a has_many relation or the parser, which assumes a list value.
 
   Accepts:
   * field - the name of the relation
@@ -120,7 +122,7 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Adds a has_one relation or the parser
+  Adds a has_one relation or the parser.
 
   Accepts:
   * field - the name of the relation

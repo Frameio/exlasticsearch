@@ -1,9 +1,9 @@
 defmodule ExlasticSearch do
   @moduledoc """
-  A collection of elasticsearch dsl's to make development simple.  The usage is meant to
-  pair with existing ecto schema, like so:
+  A collection of Elasticsearch DSLs to make development simple.  The usage is meant to
+  pair with existing Ecto schema, like so:
 
-  ```
+  ```elixir
   defmodule MySchema do
     ...
     use ExlasticSearch.Model
@@ -19,14 +19,14 @@ defmodule ExlasticSearch do
 
   You can then construct queries like so:
 
-  ```
+  ```elixir
   MySchema.search_query()
-  |> must(math(field, value))
+  |> must(match(field, value))
   |> should(match_phrase(field, value, opts))
   |> filter(term(filter_field, value))
   ```
 
-  A repo model like ecto is provided, so a with ability to do most restful operations on records, in
+  A Repo model like Ecto is provided, so a with ability to do most restful operations on records, in
   addition to calling search apis with the query structs above.
 
   If additional data needs to be fetched or formatted prior to insertion into elastic, the `ExlasticSearch.Indexable`

@@ -1,8 +1,10 @@
 defmodule ExlasticSearch.TypeInference do
   @moduledoc """
-  Default type inference implementation.  If you desire to override it, simply do:
+  Default type inference implementation.
 
-  ```
+  If you desire to override it, simply do:
+
+  ```elixir
   defmodule MyTypeInference do
     use ExlasticSearch.TypeInference.Base
 
@@ -11,12 +13,13 @@ defmodule ExlasticSearch.TypeInference do
   end
   ```
 
-  Then configure it with `config :exlasticsearch, :type_inference, MyTypeInference`
+  Then configure it with `config :exlasticsearch, :type_inference, MyTypeInference`.
   """
   defmodule API do
     @moduledoc """
-    Behaviour for inferring module types.  A default implementation is available
-    in ExlasticSearch.TypeInference.Base
+    Behaviour for inferring module types.
+
+    A default implementation is available in `ExlasticSearch.TypeInference.Base`.
     """
     @callback infer(atom) :: atom
   end

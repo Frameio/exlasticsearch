@@ -1,6 +1,6 @@
 defmodule ExlasticSearch.Response.Hits do
   @moduledoc """
-  Elasticsearch hits response structure
+  Elasticsearch hits response structure.
   """
   use ExlasticSearch.Response
 
