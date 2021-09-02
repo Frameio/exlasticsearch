@@ -187,14 +187,14 @@ defmodule ExlasticSearch.Repo do
   The function will handle formatting the bulk request properly and passing each
   struct to the `ExlasticSearch.Indexable` protocol
   """
-  def bulk(operations, index \\ :index, opts \\ []) do
+  def bulk(operations, index \\ :index, query_params \\ [], opts \\ []) do
     bulk_request =
       operations
       |> Enum.map(&BulkOperation.bulk_operation/1)
       |> Enum.concat()
 
     es_url(index)
-    |> Bulk.post(bulk_request, [], opts)
+    |> Bulk.post(bulk_request, opts, query_params)
     |> log_response()
     |> mark_failure()
   end
