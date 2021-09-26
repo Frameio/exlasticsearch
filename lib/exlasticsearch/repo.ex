@@ -58,9 +58,9 @@ defmodule ExlasticSearch.Repo do
   Updates an index's mappings to the current definition in `model`
   """
   @spec create_mapping(atom) :: response
-  def create_mapping(model, index \\ :index) do
+  def create_mapping(model, index \\ :index, opts \\ []) do
     es_url(index)
-    |> Mapping.put(model.__es_index__(index), model.__doc_type__(), model.__es_mappings__())
+    |> Mapping.put(model.__es_index__(index), model.__doc_type__(), model.__es_mappings__(), opts)
   end
 
   @doc """

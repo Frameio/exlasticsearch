@@ -3,7 +3,7 @@ defimpl Scrivener.Paginater, for: ExlasticSearch.Query do
     Search,
     Hits
   }
-  
+
   def paginate(query, %Scrivener.Config{page_number: page, page_size: page_size}) do
     response = ExlasticSearch.Repo.search(query, es_pagination(page, page_size))
     hits     = extract_hits(response)
@@ -21,9 +21,10 @@ defimpl Scrivener.Paginater, for: ExlasticSearch.Query do
   defp extract_hits({:ok, %Search{hits: %Hits{hits: hits}}}), do: hits
   defp extract_hits(_), do: []
 
+  defp total_hits({:ok, %Search{hits: %Hits{total: %{"value" => total}}}}), do: total
   defp total_hits({:ok, %Search{hits: %Hits{total: total}}}), do: total
   defp total_hits(_), do: 0
 
-  defp es_pagination(page, size), 
+  defp es_pagination(page, size),
     do: [from: (page - 1) * size, size: size]
 end
