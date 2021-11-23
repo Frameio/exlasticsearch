@@ -39,7 +39,7 @@ defmodule ExlasticSearch.Query do
   @doc """
   Builds a match phrase query clause
   """
-  @spec match_phrase(atom, binary, list) :: map
+  @spec match_phrase(atom, binary, Keyword.t) :: map
   def match_phrase(field, query, opts \\ []),
     do: %{match_phrase: %{field => Enum.into(opts, %{query: query})}}
 
@@ -48,6 +48,8 @@ defmodule ExlasticSearch.Query do
   """
   @spec match(atom, binary) :: map
   def match(field, query), do: %{match: %{field => query}}
+
+  @spec match(atom, binary, Keyword.t) :: map
   def match(field, query, opts), do: %{match: %{field => Enum.into(opts, %{query: query})}}
 
   @doc """
@@ -72,14 +74,14 @@ defmodule ExlasticSearch.Query do
   @doc """
   Query string query type, that applies ES standard query rewriting
   """
-  @spec query_string(atom, binary) :: map
+  @spec query_string(atom, Keyword.t) :: map
   def query_string(query, opts \\ []),
     do: %{query_string: Enum.into(opts, %{query: query})}
 
   @doc """
   terms query clause
   """
-  @spec terms(atom, binary) :: map
+  @spec terms(atom, list) :: map
   def terms(field, terms), do: %{terms: %{field => terms}}
 
   @doc """
@@ -122,7 +124,7 @@ defmodule ExlasticSearch.Query do
   @doc """
   Converts a query to a function score query and adds the given `script` for scoring
   """
-  @spec script_score(t, binary) :: t
+  @spec script_score(t, binary, Keyword.t) :: t
   def script_score(%__MODULE__{options: options} = q, script, opts \\ []) do
     script = Enum.into(opts, %{source: script})
     %{q | type: :function_score, options: Map.put(options, :script, script)}

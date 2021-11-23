@@ -212,7 +212,7 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Gets an ES document by _id
   """
-  @spec get(struct) :: response
+  @spec get(struct) ::{:ok, %Response.Record{}} | {:error, any}
   def get(%{__struct__: model} = struct, index_type \\ :read) do
     es_url(index_type)
     |> Document.get(model.__es_index__(index_type), model.__doc_type__(), Indexable.id(struct))
@@ -223,14 +223,14 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Creates a call to `search/3` by realizing `query` (using `Exlasticsearch.Query.realize/1`) and any provided search opts
   """
-  @spec search(Query.t(), list) :: response
+  @spec search(Query.t(), list) :: {:ok, %Response.Search{}} | {:error, any}
   def search(%Query{queryable: model} = query, params),
     do: search(model, Query.realize(query), params, query.index_type || :read)
 
   @doc """
   Searches the index and type associated with `model` according to query `search`
   """
-  @spec search(atom, map, list) :: response
+  @spec search(atom, map, list, any) :: {:ok, %Response.Search{}} | {:error, any}
   def search(model, search, params, index_type \\ :read) do
     index = model_to_index(model, index_type)
     doc_types = model_to_doc_types(model)
