@@ -1,13 +1,17 @@
 defmodule ExlasticSearch.Repo do
   @moduledoc """
-  API executor for elasticsearch.  The generate pattern is to define a `ExlasticSearch.Model`
-  on an ecto model, then call any of these functions to manage the model.
+  API executor for elasticsearch.
+
+  The generate pattern is to define a `ExlasticSearch.Model` on an ecto model,
+  then call any of these functions to manage the model.
 
   To configure the url the repo points to, do:
 
-  ```
+  ```elixir
   config :exlasticsearch, ExlasticSearch.Repo,
     url: "https://elasticsearch.url.io:9200"
+  ```
+
   """
   use Scrivener
   use ExlasticSearch.Retry.Decorator
@@ -22,7 +26,7 @@ defmodule ExlasticSearch.Repo do
              |> Keyword.get(:log_level, :debug)
 
   @doc """
-  Creates an index as defined in `model`
+  Creates an index as defined in `model`.
   """
   @spec create_index(atom) :: response
   def create_index(model, index \\ :index) do
@@ -31,7 +35,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Updates the index for `model`
+  Updates the index for `model`.
   """
   def update_index(model, index \\ :index) do
     url = es_url(index) <> "/#{model.__es_index__(index)}/_settings"
@@ -39,7 +43,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Close an index for `model`
+  Close an index for `model`.
   """
   def close_index(model, index \\ :index) do
     url = es_url(index) <> "/#{model.__es_index__(index)}/_close"
@@ -47,7 +51,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  open an index for `model`
+  open an index for `model`.
   """
   def open_index(model, index \\ :index) do
     url = es_url(index) <> "/#{model.__es_index__(index)}/_open"
@@ -55,7 +59,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Updates an index's mappings to the current definition in `model`
+  Updates an index's mappings to the current definition in `model`.
   """
   @spec create_mapping(atom) :: response
   def create_mapping(model, index \\ :index, opts \\ []) do
@@ -64,7 +68,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Removes the index defined in `model`
+  Removes the index defined in `model`.
   """
   @spec delete_index(atom) :: response
   def delete_index(model, index \\ :index) do
@@ -75,12 +79,12 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Aliases one index version to another, for instance:
 
-  ```
+  ```elixir
   alias(MyModel, read: :index)
   ```
 
   will create an alias of the read version of the model's index
-  against it's indexing version
+  against it's indexing version.
   """
   @spec create_alias(atom, [{atom, atom}]) :: response
   def create_alias(model, [{from, target}], index \\ :index) do
@@ -104,7 +108,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Deletes the read index and aliases the write index to it
+  Deletes the read index and aliases the write index to it.
   """
   @spec rotate(atom, atom, atom) :: response
   def rotate(model, read \\ :read, index \\ :index) do
@@ -114,7 +118,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Retries the aliases for a given index
+  Retries the aliases for a given index.
   """
   @spec get_alias(atom, atom) :: response
   def get_alias(model, index) when is_atom(index) do
@@ -125,7 +129,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Checks if the index for `model` exists
+  Checks if the index for `model` exists.
   """
   @spec exists?(atom) :: boolean
   def exists?(model, index \\ :read) do
@@ -138,7 +142,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Refreshes `model`'s index
+  Refreshes `model`'s index.
   """
   def refresh(model, index \\ :read) do
     es_url(index)
@@ -146,8 +150,10 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Adds a struct into it's associated index.  The struct will be passed through the `ExlasticSearch.Indexable`
-  protocol prior to insertion
+  Adds a struct into it's associated index.
+
+  The struct will be passed through the `ExlasticSearch.Indexable` protocol
+  prior to insertion.
   """
   @spec index(struct) :: response
   @decorate retry()
@@ -162,7 +168,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Updates the document of the passed in id for the index associated to the model
+  Updates the document of the passed in id for the index associated to the model.
   """
   @decorate retry()
   def update(model, id, data, index \\ :index) do
@@ -175,8 +181,9 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Generates an Elasticsearch bulk request. `operations` should be of the form:
 
-  Note: the last element in each Tuple is optional and will default to :index
-  ```
+  Note: the last element in each Tuple is optional and will default to `:index`.
+
+  ```elixir
   [
     {:index, struct, index},
     {:delete, other_struct, index},
@@ -185,7 +192,7 @@ defmodule ExlasticSearch.Repo do
   ```
 
   The function will handle formatting the bulk request properly and passing each
-  struct to the `ExlasticSearch.Indexable` protocol
+  struct to the `ExlasticSearch.Indexable` protocol.
   """
   def bulk(operations, index \\ :index, query_params \\ [], opts \\ []) do
     bulk_request =
@@ -210,7 +217,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Gets an ES document by _id
+  Gets an ES document by _id.
   """
   @spec get(struct) ::{:ok, %Response.Record{}} | {:error, any}
   def get(%{__struct__: model} = struct, index_type \\ :read) do
@@ -221,14 +228,14 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Creates a call to `search/3` by realizing `query` (using `Exlasticsearch.Query.realize/1`) and any provided search opts
+  Creates a call to `search/3` by realizing `query` (using `Exlasticsearch.Query.realize/1`) and any provided search opts.
   """
   @spec search(Query.t(), list) :: {:ok, %Response.Search{}} | {:error, any}
   def search(%Query{queryable: model} = query, params),
     do: search(model, Query.realize(query), params, query.index_type || :read)
 
   @doc """
-  Searches the index and type associated with `model` according to query `search`
+  Searches the index and type associated with `model` according to query `search`.
   """
   @spec search(atom, map, list, any) :: {:ok, %Response.Search{}} | {:error, any}
   def search(model, search, params, index_type \\ :read) do
@@ -271,7 +278,7 @@ defmodule ExlasticSearch.Repo do
   end
 
   @doc """
-  Removes `struct` from the index of its model
+  Removes `struct` from the index of its model.
   """
   @spec delete(struct) :: response
   @decorate retry()

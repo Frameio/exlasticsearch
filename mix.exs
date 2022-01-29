@@ -1,6 +1,7 @@
 defmodule Exlasticsearch.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/Frameio/exlasticsearch"
   @version "2.2.1"
 
   def project do
@@ -9,15 +10,13 @@ defmodule Exlasticsearch.MixProject do
       version: @version,
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
-      elixirc_paths: elixirc_paths(Mix.env),
-      description: description(),
+      elixirc_paths: elixirc_paths(Mix.env()),
       package: package(),
       deps: deps(),
       docs: docs()
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger]
@@ -27,7 +26,6 @@ defmodule Exlasticsearch.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:flow, "~> 1.0"},
@@ -36,28 +34,31 @@ defmodule Exlasticsearch.MixProject do
       {:ecto, ">= 2.1.0"},
       {:scrivener_ecto, "~> 2.0"},
       {:decorator, "~> 1.2"},
-      {:ex_doc, "~> 0.19.1", only: :dev}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 
   defp docs() do
     [
+      extras: [
+        "LICENSE.md": [title: "License"],
+        "README.md": [title: "Overview"]
+      ],
       main: "readme",
-      extras: ["README.md"],
+      source_url: @source_url,
       source_ref: "v#{@version}",
-      source_url: "https://github.com/Frameio/exlasticsearch"
+      formatters: ["html"]
     ]
-  end
-
-  defp description() do
-    "Ecto-friendly Elasticsearch dsl"
   end
 
   defp package() do
     [
+      description: "Ecto-friendly Elasticsearch DSL",
       maintainers: ["Michael Guarino"],
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/Frameio/exlasticsearch"}
+      links: %{
+        "GitHub" => @source_url
+      }
     ]
   end
 end

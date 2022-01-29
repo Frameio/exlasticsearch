@@ -1,7 +1,9 @@
 defmodule ExlasticSearch.Model do
   @moduledoc """
-  Base macro for generating elasticsearch modules.  Is intended to be used in conjunction with a
-  Ecto model (although that is not strictly necessary).
+  Base macro for generating elasticsearch modules.
+
+  Is intended to be used in conjunction with a Ecto model (although that is not
+  strictly necessary).
 
   It includes three primary macros:
 
@@ -11,7 +13,7 @@ defmodule ExlasticSearch.Model do
 
   The usage is something like this
 
-  ```
+  ```elixir
   indexes :my_type do
     settings Application.get_env(:some, :settings)
 
@@ -60,8 +62,10 @@ defmodule ExlasticSearch.Model do
   end
 
   @doc """
-  Opens up index definition for the current model.  Will name the index and generate metadata
-  attributes for the index based on subsequent calls to `settings/1` and `mappings/2`.
+  Opens up index definition for the current model.
+
+  Will name the index and generate metadata attributes for the index based on
+  subsequent calls to `settings/1` and `mappings/2`.
 
   Accepts
   * `type` - the indexes type (and index name will be `type <> "s"`)
@@ -122,7 +126,7 @@ defmodule ExlasticSearch.Model do
 
   defmodule SearchResult do
     @moduledoc """
-    Wrapper for a models search result.  Used for response parsing
+    Wrapper for a models search result.  Used for response parsing.
     """
     defmacro __using__(_) do
       columns = __CALLER__.module.__mappings__()
@@ -136,7 +140,9 @@ defmodule ExlasticSearch.Model do
   end
 
   @doc """
-  Adds a new mapping to the ES schema.  The type of the mapping will be inferred automatically, unless explictly set
+  Adds a new mapping to the ES schema.
+
+  The type of the mapping will be inferred automatically, unless explictly set
   in props.
 
   Accepts:
@@ -150,7 +156,9 @@ defmodule ExlasticSearch.Model do
   end
 
   @doc """
-  A map of index settings.  Structure is the same as specified by ES.
+  A map of index settings.
+
+  Structure is the same as specified by ES.
   """
   defmacro settings(settings) do
     quote do
@@ -183,7 +191,7 @@ defmodule ExlasticSearch.Model do
   end
 
   @doc """
-  Converts a search result to `model`'s search result type
+  Converts a search result to `model`'s search result type.
   """
   def es_decode(source, model) do
     model.__es_decode_template__()

@@ -1,6 +1,6 @@
 defmodule ExlasticSearch.Retry.ExponentialBackoff do
   @moduledoc """
-  Retry Strategy implementation utilizing exponential backoffs
+  Retry Strategy implementation utilizing exponential backoffs.
   """
   @behaviour ExlasticSearch.RetryStrategy
 
