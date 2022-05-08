@@ -20,6 +20,9 @@ defmodule ExlasticSearch.Query do
   See https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html for documentation
   on specific query types.
   """
+
+  alias __MODULE__
+
   defstruct [
     type: :bool,
     queryable: nil,
@@ -34,35 +37,39 @@ defmodule ExlasticSearch.Query do
 
   @type t :: %__MODULE__{}
 
+  @type field :: String.t | atom
+
   @query_keys [:must, :should, :filter, :must_not]
 
   @doc """
   Builds a match phrase query clause
   """
-  @spec match_phrase(atom, binary, Keyword.t) :: map
-  def match_phrase(field, query, opts \\ []),
-    do: %{match_phrase: %{field => Enum.into(opts, %{query: query})}}
+  @spec match_phrase(field, String.t, Keyword.t) :: map
+  def match_phrase(field, query, opts \\ []) do
+    %{match_phrase: %{field => Enum.into(opts, %{query: query})}}
+  end
 
   @doc """
   Builds a match query clause
   """
-  @spec match(atom, binary) :: map
+  @spec match(field, String.t) :: map
   def match(field, query), do: %{match: %{field => query}}
 
-  @spec match(atom, binary, Keyword.t) :: map
+  @spec match(field, String.t, Keyword.t) :: map
   def match(field, query, opts), do: %{match: %{field => Enum.into(opts, %{query: query})}}
 
   @doc """
   Multimatch query clause
   """
-  @spec multi_match(atom, binary) :: map
-  def multi_match(fields, query, opts \\ []),
-    do: %{multi_match: Enum.into(opts, %{query: query, fields: fields, type: :best_fields})}
+  @spec multi_match([field], String.t, Keyword.t) :: map
+  def multi_match(fields, query, opts \\ []) do
+    %{multi_match: Enum.into(opts, %{query: query, fields: fields, type: :best_fields})}
+  end
 
   @doc """
   Term query clause
   """
-  @spec term(atom, binary) :: map
+  @spec term(field, term) :: map
   def term(field, term), do: %{term: %{field => term}}
 
   @doc """
@@ -74,135 +81,156 @@ defmodule ExlasticSearch.Query do
   @doc """
   Query string query type, that applies ES standard query rewriting
   """
-  @spec query_string(atom, Keyword.t) :: map
-  def query_string(query, opts \\ []),
-    do: %{query_string: Enum.into(opts, %{query: query})}
+  @spec query_string(String.t, Keyword.t) :: map
+  def query_string(query, opts \\ []), do: %{query_string: Enum.into(opts, %{query: query})}
 
   @doc """
   terms query clause
   """
-  @spec terms(atom, list) :: map
+  @spec terms(field, [term]) :: map
   def terms(field, terms), do: %{terms: %{field => terms}}
 
   @doc """
   range query clause
   """
-  @spec range(atom, map) :: map
+  @spec range(field, map) :: map
   def range(field, range), do: %{range: %{field => range}}
 
   @doc """
   Appends a new filter scope to the running query
   """
   @spec filter(t, map) :: t
-  def filter(%__MODULE__{filter: filters} = query, filter), do: %{query | filter: [filter | filters]}
+  def filter(%Query{filter: filters} = query, filter), do: %{query | filter: [filter | filters]}
 
   @doc """
-  Appends a new must scope to the runnning query
+  Appends a new must scope to the running query
   """
   @spec must(t, map) :: t
-  def must(%__MODULE__{must: musts} = query, must), do: %{query | must: [must | musts]}
+  def must(%Query{must: musts} = query, must), do: %{query | must: [must | musts]}
 
   @doc """
   Appends a new should scope to the running query
   """
   @spec should(t, map) :: t
-  def should(%__MODULE__{should: shoulds} = query, should), do: %{query | should: [should | shoulds]}
+  def should(%Query{should: shoulds} = query, should), do: %{query | should: [should | shoulds]}
 
   @doc """
   Appends a new must_not scope to the running query
   """
   @spec must_not(t, map) :: t
-  def must_not(%__MODULE__{must_not: must_nots} = query, must_not), do: %{query | must_not: [must_not | must_nots]}
+  def must_not(%Query{must_not: must_nots} = query, must_not) do
+    %{query | must_not: [must_not | must_nots]}
+  end
 
   @doc """
   Adds a sort clause to the ES query
   """
-  @spec sort(t, binary | atom, binary) :: t
-  def sort(%__MODULE__{sort: sorts} = query, field, direction \\ "asc"),
-    do: %{query | sort: [{field, direction} | sorts]}
+  @spec sort(t, field, String.t | atom) :: t
+  def sort(%Query{sort: sorts} = query, field, direction \\ "asc") do
+    %{query | sort: [{field, direction} | sorts]}
+  end
 
   @doc """
   Converts a query to a function score query and adds the given `script` for scoring
   """
-  @spec script_score(t, binary, Keyword.t) :: t
-  def script_score(%__MODULE__{options: options} = q, script, opts \\ []) do
+  @spec script_score(t, String.t, Keyword.t) :: t
+  def script_score(%Query{options: options} = query, script, opts \\ []) do
     script = Enum.into(opts, %{source: script})
-    %{q | type: :function_score, options: Map.put(options, :script, script)}
+    %{query | type: :function_score, options: Map.put(options, :script, script)}
   end
 
-  def function_score(%__MODULE__{options: options} = q, functions, opts \\ []) do
-    funcs = Enum.into(opts, %{functions: functions})
-    %{q | type: :function_score, options: Map.merge(options, funcs)}
+  @spec function_score(t, [term], Keyword.t) :: t
+  def function_score(%Query{options: options} = query, functions, opts \\ []) do
+    functions = Enum.into(opts, %{functions: functions})
+    %{query | type: :function_score, options: Map.merge(options, functions)}
   end
 
-  def field_value_factor(%__MODULE__{options: options} = q, fvf, opts \\ []) do
-    funcs = Enum.into(opts, %{field_value_factor: fvf})
-    %{q | type: :function_score, options: Map.merge(options, funcs)}
+  @spec field_value_factor(t, term, Keyword.t) :: t
+  def field_value_factor(%Query{options: options} = query, fvf, opts \\ []) do
+    fvf = Enum.into(opts, %{field_value_factor: fvf})
+    %{query | type: :function_score, options: Map.merge(options, fvf)}
   end
 
-  def nested(%__MODULE__{options: options} = q, path) do
-    %{q | type: :nested, options: Map.put(options, :path, path)}
+  @spec nested(t, term) :: t
+  def nested(%Query{options: options} = query, path) do
+    %{query | type: :nested, options: Map.put(options, :path, path)}
   end
 
   @doc """
   Converts a `Query` struct into an ES compliant bool or function score compound query
   """
   @spec realize(t) :: map
-  def realize(%__MODULE__{type: :nested} = query) do
-    %{query: query_clause(query)} |> add_sort(query)
+  def realize(%Query{type: :nested} = query) do
+    %{query: query_clause(query)}
+    |> add_sort(query)
   end
-  def realize(%__MODULE__{type: :function_score, options: %{script: script} = opts} = query) do
+
+  def realize(%Query{type: :function_score, options: %{script: script} = opts} = query) do
     query =
-      realize(%{query | type: :bool, options: Map.delete(opts, :script)})
+      %{query | type: :bool, options: Map.delete(opts, :script)}
+      |> realize()
       |> Map.put(:script_score, %{script: script})
 
     %{query: %{function_score: query}}
   end
-  def realize(%__MODULE__{type: :bool} = query),
-    do: %{query: query_clause(query)} |> add_sort(query)
+
+  def realize(%Query{type: :bool} = query) do
+    %{query: query_clause(query)}
+    |> add_sort(query)
+  end
 
   @doc """
   Add options to the current bool compound query (for instance the minimum number of accepted matches)
   """
-  @spec options(t, map) :: t
-  def options(%__MODULE__{} = query, opts), do: %{query | options: Map.new(opts)}
+  @spec options(t, map | Keyword.t) :: t
+  def options(%Query{} = query, opts), do: %{query | options: Map.new(opts)}
 
   defp include_if_present(query) do
-    @query_keys |> Enum.reduce(%{}, fn type, acc ->
+    Enum.reduce(@query_keys, %{}, fn type, acc ->
       case Map.get(query, type) do
-        [q] -> acc |> Map.put(type, query_clause(q))
-        [_ | _] = q -> acc |> Map.put(type, query_clause(q))
+        [q] -> Map.put(acc, type, query_clause(q))
+        [_ | _] = q -> Map.put(acc, type, query_clause(q))
         _ -> acc
       end
     end)
   end
 
-  defp query_clause(%__MODULE__{type: :function_score} = query),
+  defp query_clause(%Query{type: :function_score} = query),
     do: %{function_score: transform_query(query)}
-  defp query_clause(%__MODULE__{type: :nested} = query),
+  defp query_clause(%Query{type: :nested} = query),
     do: %{nested: transform_query(query)}
-  defp query_clause(%__MODULE__{type: :constant_score} = query),
-    do: %{constant_score: include_if_present(query) |> Map.merge(query.options)}
-  defp query_clause(%__MODULE__{} = query),
-    do: %{bool: include_if_present(query) |> Map.merge(query.options)}
-  defp query_clause(clauses) when is_list(clauses), do: Enum.map(clauses, &query_clause/1)
+  defp query_clause(%Query{type: :constant_score, options: options} = query),
+    do: %{constant_score:  Map.merge(include_if_present(query), options)}
+  defp query_clause(%Query{options: options} = query),
+    do: %{bool: Map.merge(include_if_present(query), options)}
+  defp query_clause(clauses) when is_list(clauses),
+    do: Enum.map(clauses, &query_clause/1)
   defp query_clause(clause), do: clause
 
-  defp add_sort(query, %__MODULE__{sort: []}), do: query
-  defp add_sort(query, %__MODULE__{sort: sort}), do: Map.put(query, :sort, realize_sort(sort))
+  defp add_sort(query, %Query{sort: []}), do: query
+  defp add_sort(query, %Query{sort: sort}), do: Map.put(query, :sort, realize_sort(sort))
 
-  defp transform_query(%{type: :nested, options: %{path: path} = opts} = query) do
-    realize(%{query | type: :bool, options: Map.delete(opts, :path)})
+  defp transform_query(%Query{type: :nested, options: %{path: path} = opts} = query) do
+    %{query | type: :bool, options: Map.delete(opts, :path)}
+    |> realize()
     |> Map.put(:path, path)
   end
-  defp transform_query(%{type: :function_score, options: %{script: script} = opts} = query) do
-    realize(%{query | type: :bool, options: Map.delete(opts, :script)})
+
+  defp transform_query(%Query{type: :function_score, options: %{script: script} = opts} = query) do
+    %{query | type: :bool, options: Map.delete(opts, :script)}
+    |> realize()
     |> Map.put(:script_score, %{script: script})
   end
-  defp transform_query(%{type: :function_score, options: opts} = query) do
-    realize(%{query | type: :bool, options: Map.drop(opts, [:functions, :field_value_factor])})
+
+  defp transform_query(%Query{type: :function_score, options: opts} = query) do
+    %{query | type: :bool, options: Map.drop(opts, [:functions, :field_value_factor])}
+    |> realize()
     |> Map.merge(Map.take(opts, [:functions, :field_value_factor]))
   end
 
-  defp realize_sort(sort), do: Enum.reverse(sort) |> Enum.map(fn {field, direction} -> %{field => direction} end)
+  defp realize_sort(sort) do
+    sort
+    |> Enum.reverse()
+    |> Enum.map(fn {field, direction} -> %{field => direction} end)
+  end
 end
