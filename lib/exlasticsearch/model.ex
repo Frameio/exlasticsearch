@@ -13,7 +13,7 @@ defmodule ExlasticSearch.Model do
 
   ```
   indexes :my_type do
-    settings Application.compile_env(:some, :settings)
+    settings Application.get_env(:some, :settings)
 
     mapping :column
     mapping :other_column, type: :keyword
