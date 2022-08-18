@@ -13,7 +13,7 @@ defmodule ExlasticSearch.Model do
 
   ```
   indexes :my_type do
-    settings Application.get_env(:some, :settings)
+    settings Application.compile_env(:some, :settings)
 
     mapping :column
     mapping :other_column, type: :keyword
@@ -33,7 +33,7 @@ defmodule ExlasticSearch.Model do
   * `__doc_type__/0` - the default document type for searches in __es_index__()
   * `__es_settings__/0` - the settings for the index of this model
   """
-  @type_inference Application.get_env(:exlasticsearch, :type_inference)
+  @type_inference Application.compile_env(:exlasticsearch, :type_inference)
 
   defmacro __using__(_) do
     quote do
@@ -43,7 +43,7 @@ defmodule ExlasticSearch.Model do
       @es_query %ExlasticSearch.Query{
         queryable: __MODULE__,
         index_type:
-          Keyword.get(Application.get_env(:exlasticsearch, __MODULE__, []), :index_type, :read)
+          Keyword.get(Application.compile_env(:exlasticsearch, __MODULE__, []), :index_type, :read)
       }
       @mapping_options %{}
 
