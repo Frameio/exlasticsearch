@@ -11,6 +11,7 @@ defmodule ExlasticSearch.TypeInference.Base do
       def infer(:float), do: :double
       def infer(:string), do: :text
       def infer(:binary), do: :text
+      def infer(Ecto.Enum), do: :keyword
       def infer(dt) when dt in [Ecto.DateTime, Timex.Ecto.DateTime, :utc_datetime], do: :date
       def infer(type), do: type
 
