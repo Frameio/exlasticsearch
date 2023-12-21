@@ -33,7 +33,7 @@ defmodule ExlasticSearch.BulkOperation do
         op_type => %{
           _id: Indexable.id(struct),
           _index: model.__es_index__(index),
-          _type: model.__doc_type__()
+          _type: "_doc"
         }
       },
       build_document(struct, index)
@@ -53,7 +53,7 @@ defmodule ExlasticSearch.BulkOperation do
         delete: %{
           _id: Indexable.id(struct),
           _index: model.__es_index__(index),
-          _type: model.__doc_type__()
+          _type: "_doc"
         }
       }
     ]

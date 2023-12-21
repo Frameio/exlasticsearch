@@ -60,7 +60,7 @@ defmodule ExlasticSearch.Repo do
   @spec create_mapping(atom) :: response
   def create_mapping(model, index \\ :index, opts \\ []) do
     es_url(index)
-    |> Mapping.put(model.__es_index__(index), model.__doc_type__(), model.__es_mappings__(), opts)
+    |> Mapping.put(model.__es_index__(index), "_doc", model.__es_mappings__(), opts)
   end
 
   @doc """
@@ -156,7 +156,7 @@ defmodule ExlasticSearch.Repo do
     document = build_document(struct, index)
 
     es_url(index)
-    |> Document.index(model.__es_index__(index), model.__doc_type__(), id, document)
+    |> Document.index(index, "_doc", id, document)
     |> log_response()
     |> mark_failure()
   end
@@ -167,7 +167,7 @@ defmodule ExlasticSearch.Repo do
   @decorate retry()
   def update(model, id, data, index \\ :index) do
     es_url(index)
-    |> Document.update(model.__es_index__(index), model.__doc_type__(), id, data)
+    |> Document.update(model.__es_index__(index), "_doc", id, data)
     |> log_response()
     |> mark_failure()
   end
@@ -215,7 +215,7 @@ defmodule ExlasticSearch.Repo do
   @spec get(struct) ::{:ok, %Response.Record{}} | {:error, any}
   def get(%{__struct__: model} = struct, index_type \\ :read) do
     es_url(index_type)
-    |> Document.get(model.__es_index__(index_type), model.__doc_type__(), Indexable.id(struct))
+    |> Document.get(model.__es_index__(index_type), "_doc", Indexable.id(struct))
     |> log_response()
     |> decode(Response.Record, model)
   end
@@ -252,7 +252,7 @@ defmodule ExlasticSearch.Repo do
     models
     |> Enum.map(& &1.__doc_type__())
   end
-  defp model_to_doc_types(model), do: [model.__doc_type__()]
+  defp model_to_doc_types(model), do: ["_doc"]
 
   @doc """
   Performs an aggregation against a query, and returns only the aggregation results.
@@ -265,7 +265,7 @@ defmodule ExlasticSearch.Repo do
     index_type = query.index_type || :read
 
     es_url(index_type)
-    |> Search.search(model.__es_index__(index_type), [model.__doc_type__()], search, size: 0)
+    |> Search.search(model.__es_index__(index_type), ["_doc"], search, size: 0)
     # TODO: figure out how to decode these, it's not trivial to type them
     |> log_response()
   end
@@ -277,7 +277,7 @@ defmodule ExlasticSearch.Repo do
   @decorate retry()
   def delete(%{__struct__: model} = struct, index \\ :index) do
     es_url(index)
-    |> Document.delete(model.__es_index__(index), model.__doc_type__(), Indexable.id(struct))
+    |> Document.delete(model.__es_index__(index), "_doc", Indexable.id(struct))
     |> log_response()
     |> mark_failure()
   end
