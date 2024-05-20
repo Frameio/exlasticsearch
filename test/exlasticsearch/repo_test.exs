@@ -175,7 +175,7 @@ defmodule ExlasticSearch.RepoTest do
 
       aggregation =
         Aggregation.new()
-        |> Aggregation.terms(:group, field: :group)
+        |> Aggregation.terms(:group, field: String.to_atom("group.keyword"))
         |> Aggregation.nest(:group, nested)
 
       {:ok,
@@ -213,7 +213,7 @@ defmodule ExlasticSearch.RepoTest do
       Repo.refresh(TestModel)
 
       sources = [
-        Aggregation.composite_source(:group, :terms, field: :group, order: :desc),
+        Aggregation.composite_source(:group, :terms, field: String.to_atom("group.keyword"), order: :desc),
         Aggregation.composite_source(:age, :terms, field: :age, order: :asc)
       ]
 
