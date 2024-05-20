@@ -1,7 +1,15 @@
 defmodule ExlasticSearch.RepoTest do
   use ExUnit.Case, async: true
 
-  alias ExlasticSearch.Aggregation
+  alias ExlasticSearch.{
+    Repo,
+    TestModel,
+    TestModel2,
+    TypelessTestModel,
+    Aggregation,
+    Query
+  }
+
   alias ExlasticSearch.MultiVersionTestModel, as: MVTestModel
   alias ExlasticSearch.Query
   alias ExlasticSearch.Repo
@@ -24,6 +32,11 @@ defmodule ExlasticSearch.RepoTest do
     Repo.delete_index(MVTestModel, :read)
     Repo.create_index(MVTestModel, :read)
     Repo.create_mapping(MVTestModel, :read)
+
+    Repo.delete_index(TypelessTestModel)
+    Repo.create_index(TypelessTestModel)
+    Repo.create_mapping(TypelessTestModel)
+
     :ok
   end
 
