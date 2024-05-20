@@ -5,6 +5,7 @@ defmodule ExlasticSearch.RepoTest do
     Repo,
     TestModel,
     TestModel2,
+    TypelessTestModel,
     Aggregation,
     Query
   }
@@ -27,6 +28,11 @@ defmodule ExlasticSearch.RepoTest do
     Repo.delete_index(MVTestModel, :read)
     Repo.create_index(MVTestModel, :read)
     Repo.create_mapping(MVTestModel, :read)
+
+    Repo.delete_index(TypelessTestModel)
+    Repo.create_index(TypelessTestModel)
+    Repo.create_mapping(TypelessTestModel)
+
     :ok
   end
 

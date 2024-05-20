@@ -67,13 +67,15 @@ defmodule ExlasticSearch.Model do
   * `type` - the indexes type (and index name will be `type <> "s"`)
   * `block` - the definition of the index
   """
-  defmacro indexes(type, block) do
+  defmacro indexes(type, opts \\ [], block) do
+    doc_type = Keyword.get(opts, :doc_type, type)
+
     quote do
       Module.register_attribute(__MODULE__, :es_mappings, accumulate: true)
       @read_version :ignore
       @index_version :ignore
 
-      def __doc_type__(), do: unquote(type)
+      def __doc_type__(), do: unquote(doc_type)
 
       unquote(block)
 

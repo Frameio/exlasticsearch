@@ -74,8 +74,24 @@ defmodule ExlasticSearch.MultiVersionTestModel do
   end
 end
 
+defmodule ExlasticSearch.TypelessTestModel do
+  use Ecto.Schema
+  use ExlasticSearch.Model
+
+  schema "typeless_test_model" do
+    field(:name, :string)
+  end
+
+  indexes :typeless_test_model, doc_type: nil do
+    versions(2)
+    settings(%{})
+    options(%{dynamic: :strict})
+    mapping(:name)
+  end
+end
+
 defimpl ExlasticSearch.Indexable,
-  for: [ExlasticSearch.TestModel, ExlasticSearch.TestModel2, ExlasticSearch.MultiVersionTestModel] do
+  for: [ExlasticSearch.TestModel, ExlasticSearch.TestModel2, ExlasticSearch.MultiVersionTestModel, ExlasticSearch.TypelessTestModel] do
   def id(%{id: id}), do: id
 
   def document(struct) do
