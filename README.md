@@ -77,7 +77,6 @@ docker-compose up -d
 mix test
 ```
 
-
 ## Copyright and License
 
 Copyright (c) 2025 Adobe/Frame.io
