@@ -5,11 +5,13 @@ defmodule ExlasticSearch.RepoTest do
     Repo,
     TestModel,
     TestModel2,
+    TypelessTestModel,
     Aggregation,
     Query
   }
 
   alias ExlasticSearch.MultiVersionTestModel, as: MVTestModel
+  alias ExlasticSearch.TypelessMultiVersionTestModel, as: TypelessMVTestModel
 
   setup_all do
     Repo.delete_index(TestModel)
@@ -27,6 +29,15 @@ defmodule ExlasticSearch.RepoTest do
     Repo.delete_index(MVTestModel, :read)
     Repo.create_index(MVTestModel, :read)
     Repo.create_mapping(MVTestModel, :read)
+
+    Repo.delete_index(TypelessTestModel, :es8)
+    Repo.create_index(TypelessTestModel, :es8)
+    Repo.create_mapping(TypelessTestModel, :es8)
+
+    Repo.delete_index(TypelessMVTestModel, :es8)
+    Repo.create_index(TypelessMVTestModel, :es8)
+    Repo.create_mapping(TypelessMVTestModel, :es8)
+
     :ok
   end
 
@@ -36,6 +47,13 @@ defmodule ExlasticSearch.RepoTest do
       {:ok, _} = Repo.index(model)
 
       assert exists?(model)
+    end
+
+    test "It will index an element in es 8+" do
+      model = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate()}
+      {:ok, _} = Repo.index(model, :es8)
+
+      assert exists?(model, :es8)
     end
   end
 
@@ -50,6 +68,17 @@ defmodule ExlasticSearch.RepoTest do
       {:ok, %{_source: data}} = Repo.get(model)
       assert data.name == "test edited"
     end
+
+    test "It will update an element in es 8+" do
+      id = Ecto.UUID.generate()
+      model = %ExlasticSearch.TypelessTestModel{id: id, name: "test"}
+      Repo.index(model, :es8)
+
+      {:ok, _} = Repo.update(ExlasticSearch.TypelessTestModel, id, %{doc: %{name: "test edited"}}, :es8)
+
+      {:ok, %{_source: data}} = Repo.get(model, :es8)
+      assert data.name == "test edited"
+    end
   end
 
   describe "#bulk" do
@@ -58,6 +87,13 @@ defmodule ExlasticSearch.RepoTest do
       {:ok, _} = Repo.bulk([{:index, model}])
 
       assert exists?(model)
+    end
+
+    test "It will bulk index/delete from es 8+" do
+      model = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate()}
+      {:ok, _} = Repo.bulk([{:index, model, :es8}], :es8)
+
+      assert exists?(model, :es8)
     end
 
     test "It will bulk update from es" do
@@ -126,6 +162,15 @@ defmodule ExlasticSearch.RepoTest do
 
       assert exists?(model)
     end
+
+    test "It can deprecate an old index version on es 8+" do
+      model = %TypelessMVTestModel{id: Ecto.UUID.generate()}
+      {:ok, _} = Repo.index(model, :es8)
+
+      Repo.rotate(TypelessMVTestModel, :read, :es8)
+
+      assert exists?(model, :es8)
+    end
   end
 
   describe "#aggregate/2" do
@@ -158,6 +203,35 @@ defmodule ExlasticSearch.RepoTest do
       assert Enum.all?(buckets, &(&1["key"] in [1, 2]))
     end
 
+    test "It can perform terms aggreagtions on es 8+" do
+      models =
+        for i <- 1..3,
+            do: %TypelessTestModel{id: Ecto.UUID.generate(), name: "name #{i}", age: i}
+
+      {:ok, _} = Enum.map(models, &{:index, &1, :es8}) |> Repo.bulk(:es8)
+
+      Repo.refresh(TypelessTestModel, :es8)
+
+      aggregation = Aggregation.new() |> Aggregation.terms(:age, field: :age, size: 2)
+
+      {:ok,
+       %{
+         body: %{
+           "aggregations" => %{
+             "age" => %{
+               "buckets" => buckets
+             }
+           }
+         }
+       }} =
+        TypelessTestModel.search_query()
+        |> Query.must(Query.match(:name, "name"))
+        |> Repo.aggregate(aggregation)
+
+      assert length(buckets) == 2
+      assert Enum.all?(buckets, &(&1["key"] in [1, 2]))
+    end
+
     test "It can perform top_hits aggregations, even when nested" do
       models =
         for i <- 1..3 do
@@ -177,7 +251,7 @@ defmodule ExlasticSearch.RepoTest do
 
       aggregation =
         Aggregation.new()
-        |> Aggregation.terms(:group, field: :group)
+        |> Aggregation.terms(:group, field: String.to_atom("group.keyword"))
         |> Aggregation.nest(:group, nested)
 
       {:ok,
@@ -191,6 +265,46 @@ defmodule ExlasticSearch.RepoTest do
          }
        }} =
         TestModel.search_query()
+        |> Query.must(Query.match(:name, "name"))
+        |> Repo.aggregate(aggregation)
+
+      assert length(buckets) == 2
+      assert Enum.all?(buckets, &(!Enum.empty?(get_hits(&1))))
+    end
+
+    test "It can perform top_hits aggregations, even when nested, on es 8+" do
+      models =
+        for i <- 1..3 do
+          %TypelessTestModel{
+            id: Ecto.UUID.generate(),
+            name: "name #{i}",
+            age: i,
+            group: if(rem(i, 2) == 0, do: "even", else: "odd")
+          }
+        end
+
+      {:ok, _} = Enum.map(models, &{:index, &1, :es8}) |> Repo.bulk(:es8)
+
+      Repo.refresh(TypelessTestModel, :es8)
+
+      nested = Aggregation.new() |> Aggregation.top_hits(:hits, %{})
+
+      aggregation =
+        Aggregation.new()
+        |> Aggregation.terms(:group, field: :group)
+        |> Aggregation.nest(:group, nested)
+
+      {:ok,
+       %{
+         body: %{
+           "aggregations" => %{
+             "group" => %{
+               "buckets" => buckets
+             }
+           }
+         }
+       }} =
+        TypelessTestModel.search_query()
         |> Query.must(Query.match(:name, "name"))
         |> Repo.aggregate(aggregation)
 
@@ -214,7 +328,7 @@ defmodule ExlasticSearch.RepoTest do
       Repo.refresh(TestModel)
 
       sources = [
-        Aggregation.composite_source(:group, :terms, field: :group, order: :desc),
+        Aggregation.composite_source(:group, :terms, field: String.to_atom("group.keyword"), order: :desc),
         Aggregation.composite_source(:age, :terms, field: :age, order: :asc)
       ]
 
@@ -231,6 +345,53 @@ defmodule ExlasticSearch.RepoTest do
          }
        }} =
         TestModel.search_query()
+        |> Query.must(Query.match(:name, "name"))
+        |> Repo.aggregate(aggregation)
+
+      for i <- 1..3 do
+        assert Enum.any?(buckets, fn
+                 %{"key" => %{"age" => ^i, "group" => group}} ->
+                   group == if rem(i, 2) == 0, do: "even", else: "odd"
+
+                 _ ->
+                   false
+               end)
+      end
+    end
+
+    test "It can perform composite aggregations on es 8+" do
+      models =
+        for i <- 1..3 do
+          %TypelessTestModel{
+            id: Ecto.UUID.generate(),
+            name: "name #{i}",
+            age: i,
+            group: if(rem(i, 2) == 0, do: "even", else: "odd")
+          }
+        end
+
+      {:ok, _} = Enum.map(models, &{:index, &1, :es8}) |> Repo.bulk(:es8)
+
+      Repo.refresh(TypelessTestModel, :es8)
+
+      sources = [
+        Aggregation.composite_source(:group, :terms, field: :group, order: :desc),
+        Aggregation.composite_source(:age, :terms, field: :age, order: :asc)
+      ]
+
+      aggregation = Aggregation.new() |> Aggregation.composite(:group, sources)
+
+      {:ok,
+       %{
+         body: %{
+           "aggregations" => %{
+             "group" => %{
+               "buckets" => buckets
+             }
+           }
+         }
+       }} =
+        TypelessTestModel.search_query()
         |> Query.must(Query.match(:name, "name"))
         |> Repo.aggregate(aggregation)
 
@@ -269,6 +430,38 @@ defmodule ExlasticSearch.RepoTest do
         filter: [
           %{term: %{name: rand_name}}
         ]
+      }
+
+      {:ok, %{hits: %{hits: results}}} = Repo.search(query, [])
+
+      assert length(results) == 2
+      assert Enum.find(results, & &1._id == id1)
+      assert Enum.find(results, & &1._id == id2)
+    end
+
+    test "It will search in a single index in es 8+" do
+      id1 = Ecto.UUID.generate()
+      id2 = Ecto.UUID.generate()
+      id3 = Ecto.UUID.generate()
+
+      rand_name = Ecto.UUID.generate() |> String.replace("-", "")
+
+      model1 = %TypelessTestModel{id: id1, name: rand_name}
+      model2 = %TypelessTestModel{id: id2, name: rand_name}
+      model3 = %TypelessTestModel{id: id3, name: "something else"}
+
+      Repo.index(model1, :es8)
+      Repo.index(model2, :es8)
+      Repo.index(model3, :es8)
+
+      Repo.refresh(TypelessTestModel, :es8)
+
+      query = %ExlasticSearch.Query{
+        queryable: ExlasticSearch.TypelessTestModel,
+        filter: [
+          %{term: %{name: rand_name}}
+        ],
+        index_type: :es8
       }
 
       {:ok, %{hits: %{hits: results}}} = Repo.search(query, [])
@@ -317,8 +510,8 @@ defmodule ExlasticSearch.RepoTest do
     end
   end
 
-  defp exists?(model) do
-    case Repo.get(model) do
+  defp exists?(model, index \\ :index) do
+    case Repo.get(model, index) do
       {:ok, %{found: true}} -> true
       _ -> false
     end
