@@ -78,8 +78,11 @@ defmodule ExlasticSearch.TypelessTestModel do
   use Ecto.Schema
   use ExlasticSearch.Model
 
-  schema "typeless_test_model" do
+  schema "typeless_test_models" do
     field(:name, :string)
+    field(:age, :integer, default: 0)
+    field(:group, :string)
+    field(:teams, {:array, :map})
   end
 
   indexes :typeless_test_model, doc_type: nil do
@@ -87,11 +90,52 @@ defmodule ExlasticSearch.TypelessTestModel do
     settings(%{})
     options(%{dynamic: :strict})
     mapping(:name)
+    mapping(:age)
+    mapping(:group, type: :keyword)
+
+    mapping(:user, properties: %{ext_name: %{type: :text}})
+
+    mapping(:teams,
+      type: :nested,
+      properties: %{
+        name: %{type: :keyword},
+        rating: %{type: :integer}
+      }
+    )
+  end
+end
+
+defmodule ExlasticSearch.TypelessMultiVersionTestModel do
+  use Ecto.Schema
+  use ExlasticSearch.Model
+
+  schema "typeless_mv_models" do
+    field(:name, :string)
+    field(:age, :integer, default: 0)
+    field(:teams, {:array, :map})
+  end
+
+  indexes :typeless_multiversion_model, doc_type: nil do
+    versions({:ignore, 2})
+    settings(%{})
+    options(%{dynamic: :strict})
+    mapping(:name)
+    mapping(:age)
+
+    mapping(:user, properties: %{ext_name: %{type: :text}})
+
+    mapping(:teams,
+      type: :nested,
+      properties: %{
+        name: %{type: :keyword},
+        rating: %{type: :integer}
+      }
+    )
   end
 end
 
 defimpl ExlasticSearch.Indexable,
-  for: [ExlasticSearch.TestModel, ExlasticSearch.TestModel2, ExlasticSearch.MultiVersionTestModel, ExlasticSearch.TypelessTestModel] do
+  for: [ExlasticSearch.TestModel, ExlasticSearch.TestModel2, ExlasticSearch.MultiVersionTestModel, ExlasticSearch.TypelessTestModel, ExlasticSearch.TypelessMultiVersionTestModel] do
   def id(%{id: id}), do: id
 
   def document(struct) do
