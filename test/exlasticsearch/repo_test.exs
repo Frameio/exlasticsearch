@@ -69,14 +69,15 @@ defmodule ExlasticSearch.RepoTest do
       assert data.name == "test edited"
     end
 
-    test "It will fail to update an element in es 8+" do
+    test "It will update an element in es 8+" do
       id = Ecto.UUID.generate()
       model = %ExlasticSearch.TypelessTestModel{id: id, name: "test"}
       Repo.index(model, :es8)
 
-      {:ok, response} = Repo.update(ExlasticSearch.TypelessTestModel, id, %{doc: %{name: "test edited"}}, :es8)
+      {:ok, _} = Repo.update(ExlasticSearch.TypelessTestModel, id, %{doc: %{name: "test edited"}}, :es8)
 
-      assert %{"error" => _} = response.body
+      {:ok, %{_source: data}} = Repo.get(model, :es8)
+      assert data.name == "test edited"
     end
   end
 
