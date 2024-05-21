@@ -13,7 +13,7 @@ defmodule ExlasticSearch.Model do
   The usage is something like this
 
       indexes :my_type do
-        settings Application.get_env(:some, :settings)
+        settings Application.compile_env(:some, :settings)
 
         mapping :column
         mapping :other_column, type: :keyword

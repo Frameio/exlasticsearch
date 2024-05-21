@@ -32,7 +32,7 @@ defmodule MySchema do
   use ExlasticSearch.Model
 
   indexes :my_index do
-    settings Application.get_env(:some, :settings)
+    settings Application.compile_env(:some, :settings)
 
     mapping :field
     mapping :other_field, type: :keyword # ecto derived defaults can be overridden
@@ -64,9 +64,19 @@ This library requires [Elastix](https://hex.pm/packages/elastix), an Elixir Elas
 config :exlasticsearch, :type_inference, ExlasticSearch.TypeInference
 
 config :exlasticsearch, ExlasticSearch.Repo,
-  url: "http://localhost:9200",
-  json_library: Jason
+  url: "http://localhost:9200"
 ```
+
+## Testing
+
+Run integration tests with local ElasticSearch clusters.
+Ensure Docker resources include at least 8 GB of memory.
+
+```sh
+docker-compose up -d
+mix test
+```
+
 
 ## Copyright and License
 

@@ -283,9 +283,10 @@ defmodule ExlasticSearch.Repo do
     index_type = query.index_type || :read
 
     doc_types = if doc_type = model.__doc_type__(), do: [doc_type], else: []
+    es_index = model.__es_index__(index_type)
 
     es_url(index_type)
-    |> Search.search(model.__es_index__(index_type), doc_types, search, size: 0)
+    |> Search.search(es_index, doc_types, search, size: 0)
     # TODO: figure out how to decode these, it's not trivial to type them
     |> log_response()
   end
