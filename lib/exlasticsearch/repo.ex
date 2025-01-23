@@ -313,7 +313,7 @@ defmodule ExlasticSearch.Repo do
   defp es_url(index) do
     config = Application.get_env(:exlasticsearch, __MODULE__)
 
-    config[index] || config[:url]
+    config[index] || config[:url] || "http://localhost:9200"
   end
 
   defp decode(result, response, model, index_type \\ :read)
