@@ -5,9 +5,8 @@ defmodule ExlasticSearch.Repo do
 
   To configure the url the repo points to, do:
 
-  ```
-  config :exlasticsearch, ExlasticSearch.Repo,
-    url: "https://elasticsearch.url.io:9200"
+      config :exlasticsearch, ExlasticSearch.Repo,
+        url: "https://elasticsearch.url.io:9200"
   """
   use Scrivener
   use ExlasticSearch.Retry.Decorator
@@ -73,9 +72,7 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Aliases one index version to another, for instance:
 
-  ```
-  alias(MyModel, read: :index)
-  ```
+      alias(MyModel, read: :index)
 
   will create an alias of the read version of the model's index
   against it's indexing version
@@ -174,13 +171,12 @@ defmodule ExlasticSearch.Repo do
   Generates an Elasticsearch bulk request. `operations` should be of the form:
 
   Note: the last element in each Tuple is optional and will default to :index
-  ```
-  [
-    {:index, struct, index},
-    {:delete, other_struct, index},
-    {:update, third_struct, id, map, index}
-  ]
-  ```
+
+      [
+        {:index, struct, index},
+        {:delete, other_struct, index},
+        {:update, third_struct, id, map, index}
+      ]
 
   The function will handle formatting the bulk request properly and passing each
   struct to the `ExlasticSearch.Indexable` protocol
