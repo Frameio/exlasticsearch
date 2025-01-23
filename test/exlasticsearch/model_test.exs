@@ -28,13 +28,15 @@ defmodule ExlasticSearch.ModelTest do
     end
 
     test "es_decode with nested objects" do
-      %TestModel.SearchResult{} = result = TestModel.es_decode(%{
-        "name" => "some_name",
-        "age" => 2,
-        "user" => %{
-          "ext_name" => "other_name"
-        }
-      })
+      %TestModel.SearchResult{} =
+        result =
+        TestModel.es_decode(%{
+          "name" => "some_name",
+          "age" => 2,
+          "user" => %{
+            "ext_name" => "other_name"
+          }
+        })
 
       assert result.name == "some_name"
       assert result.age == 2
@@ -42,14 +44,16 @@ defmodule ExlasticSearch.ModelTest do
     end
 
     test "es_decode with nested arrays" do
-      %TestModel.SearchResult{} = result = TestModel.es_decode(%{
-        "name" => "some_name",
-        "age" => 2,
-        "user" => [
-          %{"ext_name" => "other_name"},
-          %{"ext_name" => "second_name"}
-        ]
-      })
+      %TestModel.SearchResult{} =
+        result =
+        TestModel.es_decode(%{
+          "name" => "some_name",
+          "age" => 2,
+          "user" => [
+            %{"ext_name" => "other_name"},
+            %{"ext_name" => "second_name"}
+          ]
+        })
 
       assert result.name == "some_name"
       assert result.age == 2

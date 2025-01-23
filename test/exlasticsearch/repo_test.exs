@@ -97,8 +97,8 @@ defmodule ExlasticSearch.RepoTest do
       source =
         "ctx._source.teams.find(cf -> cf.name == params.data.name).rating = params.data.rating"
 
-        data1 = %{script: %{source: source, params: %{data: %{name: "arsenal", rating: 1000}}}}
-        data2 = %{script: %{source: source, params: %{data: %{name: "tottenham", rating: -1}}}}
+      data1 = %{script: %{source: source, params: %{data: %{name: "arsenal", rating: 1000}}}}
+      data2 = %{script: %{source: source, params: %{data: %{name: "tottenham", rating: -1}}}}
 
       {:ok, _} =
         Repo.bulk([
@@ -274,8 +274,8 @@ defmodule ExlasticSearch.RepoTest do
       {:ok, %{hits: %{hits: results}}} = Repo.search(query, [])
 
       assert length(results) == 2
-      assert Enum.find(results, & &1._id == id1)
-      assert Enum.find(results, & &1._id == id2)
+      assert Enum.find(results, &(&1._id == id1))
+      assert Enum.find(results, &(&1._id == id2))
     end
 
     test "It will search in a multiple indexes" do
@@ -311,9 +311,9 @@ defmodule ExlasticSearch.RepoTest do
       {:ok, %{hits: %{hits: results}}} = Repo.search(query, [])
 
       assert length(results) == 3
-      assert Enum.find(results, & &1._id == id1)
-      assert Enum.find(results, & &1._id == id2)
-      assert Enum.find(results, & &1._id == id4)
+      assert Enum.find(results, &(&1._id == id1))
+      assert Enum.find(results, &(&1._id == id2))
+      assert Enum.find(results, &(&1._id == id4))
     end
   end
 

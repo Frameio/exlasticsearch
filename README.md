@@ -21,7 +21,7 @@ You can pair an ExlasticSearch.Model with an existing schema like:
 
 ```elixir
 defmodule MySchema do
-  ...
+  # ...
   use ExlasticSearch.Model
 
   indexes :my_index do
@@ -37,8 +37,8 @@ You can then construct queries like so:
 
 ```elixir
 MySchema.search_query()
-|> must(math(field, value))
-|> should(match_phrash(field, value, opts))
+|> must(match(field, value))
+|> should(match_phrase(field, value, opts))
 |> filter(term(filter_field, value))
 ```
 
