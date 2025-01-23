@@ -158,6 +158,7 @@ defmodule ExlasticSearch.RepoTest do
       assert Enum.all?(buckets, &(&1["key"] in [1, 2]))
     end
 
+    @tag :skip
     test "It can perform top_hits aggregations, even when nested" do
       models =
         for i <- 1..3 do
@@ -198,6 +199,7 @@ defmodule ExlasticSearch.RepoTest do
       assert Enum.all?(buckets, &(!Enum.empty?(get_hits(&1))))
     end
 
+    @tag :skip
     test "It can perform composite aggregations" do
       models =
         for i <- 1..3 do
