@@ -21,20 +21,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Configure sysctl limits
+      run: |
+        sudo swapoff -a
+        sudo sysctl -w vm.swappiness=1
+        sudo sysctl -w fs.file-max=262144
+        sudo sysctl -w vm.max_map_count=262144
+
+    - name: Runs Elasticsearch
+      uses: elastic/elastic-github-actions/elasticsearch@master
+      with:
+        stack-version: 7.17.16
+        security-enabled: false
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Set up Elixir
       uses: erlef/setup-beam@v1
       with:
         version-file: .tool-versions
         version-type: strict
+
     - name: Restore dependencies cache
       uses: actions/cache@v3
       with:
         path: deps
         key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
         restore-keys: ${{ runner.os }}-mix-
+
     - name: Install dependencies
       run: mix deps.get
+
     - name: Run tests
       run: mix test
 
