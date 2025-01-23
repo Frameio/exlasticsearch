@@ -19,8 +19,7 @@ defmodule ExlasticSearch.Response.Record do
   end
 
   defp source_model(models, index, index_type) when is_list(models) do
-    models
-    |> Enum.find(&(&1.__es_index__(index_type) == index))
+    Enum.find(models, &(&1.__es_index__(index_type) == index))
   end
 
   defp source_model(model, _, _), do: model

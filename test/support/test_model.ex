@@ -1,4 +1,5 @@
 defmodule ExlasticSearch.TestModel do
+  @moduledoc false
   use Ecto.Schema
   use ExlasticSearch.Model
 
@@ -30,6 +31,7 @@ defmodule ExlasticSearch.TestModel do
 end
 
 defmodule ExlasticSearch.TestModel2 do
+  @moduledoc false
   use Ecto.Schema
   use ExlasticSearch.Model
 
@@ -46,6 +48,7 @@ defmodule ExlasticSearch.TestModel2 do
 end
 
 defmodule ExlasticSearch.MultiVersionTestModel do
+  @moduledoc false
   use Ecto.Schema
   use ExlasticSearch.Model
 

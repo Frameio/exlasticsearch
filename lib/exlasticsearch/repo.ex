@@ -10,9 +10,19 @@ defmodule ExlasticSearch.Repo do
   """
   use Scrivener
   use ExlasticSearch.Retry.Decorator
-  alias ExlasticSearch.{Indexable, Query, Aggregation, Response}
+
+  alias Elastix.Bulk
+  alias Elastix.Document
+  alias Elastix.HTTP
+  alias Elastix.Index
+  alias Elastix.Mapping
+  alias Elastix.Search
+  alias ExlasticSearch.Aggregation
   alias ExlasticSearch.BulkOperation
-  alias Elastix.{Index, Mapping, Document, Bulk, Search, HTTP}
+  alias ExlasticSearch.Indexable
+  alias ExlasticSearch.Query
+  alias ExlasticSearch.Response
+
   require Logger
 
   @chunk_size 2000
@@ -23,7 +33,8 @@ defmodule ExlasticSearch.Repo do
   """
   @spec create_index(atom) :: response
   def create_index(model, index \\ :index) do
-    es_url(index)
+    index
+    |> es_url()
     |> Index.create(model.__es_index__(index), model.__es_settings__())
   end
 
@@ -56,7 +67,8 @@ defmodule ExlasticSearch.Repo do
   """
   @spec create_mapping(atom) :: response
   def create_mapping(model, index \\ :index, opts \\ []) do
-    es_url(index)
+    index
+    |> es_url()
     |> Mapping.put(model.__es_index__(index), model.__doc_type__(), model.__es_mappings__(), opts)
   end
 
@@ -65,7 +77,8 @@ defmodule ExlasticSearch.Repo do
   """
   @spec delete_index(atom) :: response
   def delete_index(model, index \\ :index) do
-    es_url(index)
+    index
+    |> es_url()
     |> Index.delete(model.__es_index__(index))
   end
 
@@ -103,9 +116,10 @@ defmodule ExlasticSearch.Repo do
   """
   @spec rotate(atom, atom, atom) :: response
   def rotate(model, read \\ :read, index \\ :index) do
-    with false <- model.__es_index__(read) == model.__es_index__(index),
-         _result <- delete_index(model, read),
-         do: create_alias(model, index: read)
+    with false <- model.__es_index__(read) == model.__es_index__(index) do
+      _result = delete_index(model, read)
+      create_alias(model, index: read)
+    end
   end
 
   @doc """
@@ -124,7 +138,8 @@ defmodule ExlasticSearch.Repo do
   """
   @spec exists?(atom) :: boolean
   def exists?(model, index \\ :read) do
-    es_url(index)
+    index
+    |> es_url()
     |> Index.exists?(model.__es_index__(index))
     |> case do
       {:ok, result} -> result
@@ -136,7 +151,8 @@ defmodule ExlasticSearch.Repo do
   Refreshes `model`'s index
   """
   def refresh(model, index \\ :read) do
-    es_url(index)
+    index
+    |> es_url()
     |> Index.refresh(model.__es_index__(index))
   end
 
@@ -150,7 +166,8 @@ defmodule ExlasticSearch.Repo do
     id = Indexable.id(struct)
     document = build_document(struct, index)
 
-    es_url(index)
+    index
+    |> es_url()
     |> Document.index(model.__es_index__(index), model.__doc_type__(), id, document)
     |> log_response()
     |> mark_failure()
@@ -161,7 +178,8 @@ defmodule ExlasticSearch.Repo do
   """
   @decorate retry()
   def update(model, id, data, index \\ :index) do
-    es_url(index)
+    index
+    |> es_url()
     |> Document.update(model.__es_index__(index), model.__doc_type__(), id, data)
     |> log_response()
     |> mark_failure()
@@ -187,7 +205,8 @@ defmodule ExlasticSearch.Repo do
       |> Enum.map(&BulkOperation.bulk_operation/1)
       |> Enum.concat()
 
-    es_url(index)
+    index
+    |> es_url()
     |> Bulk.post(bulk_request, opts, query_params)
     |> log_response()
     |> mark_failure()
@@ -197,7 +216,8 @@ defmodule ExlasticSearch.Repo do
   Updates all document based on the query using the provided script.
   """
   def update_by_query(model, query, script, index \\ :index) do
-    es_url(index)
+    index
+    |> es_url()
     |> Document.update_by_query(model.__es_index__(index), query, script)
     |> log_response()
     |> mark_failure()
@@ -208,7 +228,8 @@ defmodule ExlasticSearch.Repo do
   """
   @spec get(struct) :: {:ok, %Response.Record{}} | {:error, any}
   def get(%{__struct__: model} = struct, index_type \\ :read) do
-    es_url(index_type)
+    index_type
+    |> es_url()
     |> Document.get(model.__es_index__(index_type), model.__doc_type__(), Indexable.id(struct))
     |> log_response()
     |> decode(Response.Record, model)
@@ -229,23 +250,21 @@ defmodule ExlasticSearch.Repo do
     index = model_to_index(model, index_type)
     doc_types = model_to_doc_types(model)
 
-    es_url(index_type)
+    index_type
+    |> es_url()
     |> Search.search(index, doc_types, search, params)
     |> log_response()
     |> decode(Response.Search, model, index_type)
   end
 
   defp model_to_index(models, index_type) when is_list(models) do
-    models
-    |> Enum.map(& &1.__es_index__(index_type))
-    |> Enum.join(",")
+    Enum.map_join(models, ",", & &1.__es_index__(index_type))
   end
 
   defp model_to_index(model, index_type), do: model.__es_index__(index_type)
 
   defp model_to_doc_types(models) when is_list(models) do
-    models
-    |> Enum.map(& &1.__doc_type__())
+    Enum.map(models, & &1.__doc_type__())
   end
 
   defp model_to_doc_types(model), do: [model.__doc_type__()]
@@ -255,12 +274,14 @@ defmodule ExlasticSearch.Repo do
   """
   def aggregate(%Query{queryable: model} = query, %Aggregation{} = aggregation) do
     search =
-      Query.realize(query)
+      query
+      |> Query.realize()
       |> Map.merge(Aggregation.realize(aggregation))
 
     index_type = query.index_type || :read
 
-    es_url(index_type)
+    index_type
+    |> es_url()
     |> Search.search(model.__es_index__(index_type), [model.__doc_type__()], search, size: 0)
     # TODO: figure out how to decode these, it's not trivial to type them
     |> log_response()
@@ -272,7 +293,8 @@ defmodule ExlasticSearch.Repo do
   @spec delete(struct) :: response
   @decorate retry()
   def delete(%{__struct__: model} = struct, index \\ :index) do
-    es_url(index)
+    index
+    |> es_url()
     |> Document.delete(model.__es_index__(index), model.__doc_type__(), Indexable.id(struct))
     |> log_response()
     |> mark_failure()
@@ -303,8 +325,7 @@ defmodule ExlasticSearch.Repo do
     response
   end
 
-  defp build_document(struct, index),
-    do: struct |> Indexable.preload(index) |> Indexable.document(index)
+  defp build_document(struct, index), do: struct |> Indexable.preload(index) |> Indexable.document(index)
 
   defp es_url(index) do
     config = Application.get_env(:exlasticsearch, __MODULE__)
@@ -323,13 +344,9 @@ defmodule ExlasticSearch.Repo do
 
   defp decode(response, _, _, _), do: response
 
-  defp mark_failure(
-         {:ok, %HTTPoison.Response{body: %{"_shards" => %{"successful" => 0}}} = result}
-       ),
-       do: {:error, result}
+  defp mark_failure({:ok, %HTTPoison.Response{body: %{"_shards" => %{"successful" => 0}}} = result}), do: {:error, result}
 
-  defp mark_failure({:ok, %HTTPoison.Response{body: %{"errors" => true}} = result}),
-    do: {:error, result}
+  defp mark_failure({:ok, %HTTPoison.Response{body: %{"errors" => true}} = result}), do: {:error, result}
 
   defp mark_failure(result), do: result
 end
