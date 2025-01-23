@@ -11,14 +11,12 @@ defmodule ExlasticSearch.Model do
 
   The usage is something like this
 
-  ```
-  indexes :my_type do
-    settings Application.get_env(:some, :settings)
+      indexes :my_type do
+        settings Application.get_env(:some, :settings)
 
-    mapping :column
-    mapping :other_column, type: :keyword
-  end
-  ```
+        mapping :column
+        mapping :other_column, type: :keyword
+      end
 
   This will set up settings and mappings for index my_types with type my_type (specify the singularized
   type in the macro, so pluralization works naturally).
@@ -29,7 +27,7 @@ defmodule ExlasticSearch.Model do
   * `__mappings__/0` - columns with mappings for the given type
   * `__es_index__/0` - the elasticsearch index for this model
   * `__es_index__/1` - the elasticsearch index for reads/writes when performing zero-downtime updates
-                        (pass either `:read` or `:index` respectively)
+  (pass either `:read` or `:index` respectively)
   * `__doc_type__/0` - the default document type for searches in __es_index__()
   * `__es_settings__/0` - the settings for the index of this model
   """

@@ -1,16 +1,16 @@
 defmodule ExlasticSearch.Query do
   @moduledoc """
-  Elasticsearch query building functions.  Basic usage for queryable Queryable is something like:
+  Elasticsearch query building functions.
 
-  ```
-  Queryable.search_query()
-  |> must(match(field, value))
-  |> should(match_phrase(field, value, opts))
-  |> filter(term(filter_field, value))
-  |> realize()
-  ```
+  Basic usage for queryable Queryable is something like:
 
-  An ES query has 3 main clauses, must, should and filter.  Must and should are near equivalents
+      Queryable.search_query()
+      |> must(match(field, value))
+      |> should(match_phrase(field, value, opts))
+      |> filter(term(filter_field, value))
+      |> realize()
+
+  An ES query has 3 main clauses, must, should and filter. Must and should are near equivalents
   except that must clauses will reject records that fail to match.  Filters require matches but do
   not contribute to scoring, while must/should both do.  Nesting queries within queries is also supported
 

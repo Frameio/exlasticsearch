@@ -1,6 +1,6 @@
 # ExlasticSearch
 
-An elasticsearch dsls for mapping ecto models to elasticsearch mappings, along with elixir
+An elasticsearch DSL for mapping Ecto models to elasticsearch mappings, along with elixir
 friendly query wrappers, response formatting and the like.
 
 ## Installation
@@ -17,7 +17,7 @@ Docs are available on [hex](https://hexdocs.pm/exlasticsearch/0.2.2)
 
 ## Usage
 
-You can pair an ExlasticSearch.Model with an existing schema like:
+You can pair an `ExlasticSearch.Model` with an existing schema like:
 
 ```elixir
 defmodule MySchema do
@@ -42,8 +42,8 @@ MySchema.search_query()
 |> filter(term(filter_field, value))
 ```
 
-A repo model like ecto is provided, so a with ability to do most restful operations on records, in
-addition to calling search apis with the query structs above.
+A repo model like Ecto is provided, so a with ability to do most restful operations on records, in
+addition to calling search APIs with the query structs above.
 
 If additional data needs to be fetched or formatted prior to insertion into elastic, the `ExlasticSearch.Indexable`
 protocol can be implemented to do that for you.  A default implementation can also be generated as part of using
@@ -51,7 +51,7 @@ the `ExlasticSearch.Model` macro.
 
 ## Configuration
 
-This library requires `elastix` (an elixir elasticsearch http client).  So refer to it for any http related configuration.  In addition, there are the following config options:
+This library requires `elastix` (an elixir elasticsearch http client).  So refer to it for any http related configuration. In addition, there are the following configuration options:
 
 ```elixir
 config :exlasticsearch, :type_inference, ExlasticSearch.TypeInference

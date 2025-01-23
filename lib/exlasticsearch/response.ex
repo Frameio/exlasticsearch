@@ -4,15 +4,13 @@ defmodule ExlasticSearch.Response do
 
   The usage is more or less:
 
-  ```
-  use ExlasticSearch.Response
+      use ExlasticSearch.Response
 
-  schema do
-    field :total
+      schema do
+        field :total
 
-    has_many :hits, HitsModule
-  end
-  ```
+        has_many :hits, HitsModule
+      end
 
   This will define:
   * a struct for carrying the response

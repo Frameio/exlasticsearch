@@ -2,6 +2,7 @@ defmodule Exlasticsearch.MixProject do
   use Mix.Project
 
   @version "2.2.3-dev"
+  @source_url "https://github.com/Frameio/exlasticsearch"
 
   def project do
     [
@@ -36,28 +37,26 @@ defmodule Exlasticsearch.MixProject do
       {:ecto, "~> 3.0"},
       {:scrivener_ecto, "~> 3.0"},
       {:decorator, "~> 1.2"},
-      {:ex_doc, "~> 0.19.1", only: :dev}
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end
 
-  defp docs() do
+  defp docs do
     [
       main: "readme",
       extras: ["README.md"],
       source_ref: "v#{@version}",
-      source_url: "https://github.com/Frameio/exlasticsearch"
+      source_url: @source_url
     ]
   end
 
-  defp description() do
-    "Ecto-friendly Elasticsearch dsl"
-  end
+  defp description, do: "Ecto-friendly Elasticsearch DSL"
 
-  defp package() do
+  defp package do
     [
       maintainers: ["Michael Guarino"],
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/Frameio/exlasticsearch"}
+      links: %{"GitHub" => @source_url}
     ]
   end
 end
