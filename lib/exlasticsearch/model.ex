@@ -33,7 +33,11 @@ defmodule ExlasticSearch.Model do
   * `__doc_type__/0` - the default document type for searches in __es_index__()
   * `__es_settings__/0` - the settings for the index of this model
   """
-  @type_inference Application.compile_env(:exlasticsearch, :type_inference)
+  @type_inference Application.compile_env(
+                    :exlasticsearch,
+                    :type_inference,
+                    ExlasticSearch.TypeInference
+                  )
 
   defmacro __using__(_) do
     quote do
@@ -43,7 +47,11 @@ defmodule ExlasticSearch.Model do
       @es_query %ExlasticSearch.Query{
         queryable: __MODULE__,
         index_type:
-          Keyword.get(Application.compile_env(:exlasticsearch, __MODULE__, []), :index_type, :read)
+          Keyword.get(
+            Application.compile_env(:exlasticsearch, __MODULE__, []),
+            :index_type,
+            :read
+          )
       }
       @mapping_options %{}
 
@@ -199,7 +207,9 @@ defmodule ExlasticSearch.Model do
 
   def mapping_template({name, _}), do: {Atom.to_string(name), name, :preserve}
 
-  def ecto_to_es(type), do: @type_inference.infer(type)
+  def ecto_to_es(type) do
+    @type_inference.infer(type)
+  end
 
   defp do_decode(template, source) when is_map(source) do
     template
