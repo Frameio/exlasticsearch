@@ -9,7 +9,7 @@ defmodule Exlasticsearch.MixProject do
       version: @version,
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       description: description(),
       package: package(),
       deps: deps(),
@@ -33,8 +33,8 @@ defmodule Exlasticsearch.MixProject do
       {:flow, "~> 1.0"},
       {:poison, "~> 3.1"},
       {:elastix, "~> 0.10.0"},
-      {:ecto, ">= 2.1.0"},
-      {:scrivener_ecto, "~> 2.0"},
+      {:ecto, "~> 3.0"},
+      {:scrivener_ecto, "~> 3.0"},
       {:decorator, "~> 1.2"},
       {:ex_doc, "~> 0.19.1", only: :dev}
     ]

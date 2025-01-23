@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :exlasticsearch, :type_inference, ExlasticSearch.TypeInference
 
