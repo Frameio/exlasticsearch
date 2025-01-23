@@ -6,8 +6,8 @@ defimpl Scrivener.Paginater, for: ExlasticSearch.Query do
 
   def paginate(query, %Scrivener.Config{page_number: page, page_size: page_size}) do
     response = ExlasticSearch.Repo.search(query, es_pagination(page, page_size))
-    hits     = extract_hits(response)
-    total    = total_hits(response)
+    hits = extract_hits(response)
+    total = total_hits(response)
 
     %Scrivener.Page{
       page_number: page,

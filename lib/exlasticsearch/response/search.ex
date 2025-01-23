@@ -6,8 +6,8 @@ defmodule ExlasticSearch.Response.Search do
   alias ExlasticSearch.Response.Hits
 
   schema do
-    field :total
+    field(:total)
 
-    has_one :hits, Hits
+    has_one(:hits, Hits)
   end
 end

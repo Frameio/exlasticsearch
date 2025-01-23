@@ -17,4 +17,3 @@ defmodule ExlasticSearch.Retry.Decorator do
     end
   end
 end
-

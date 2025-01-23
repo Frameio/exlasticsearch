@@ -3,7 +3,7 @@ defmodule ExlasticSearch.Aggregation do
   Elasticsearch aggregation building functions
   """
 
-  defstruct [aggregations: [], nested: %{}, options: %{}]
+  defstruct aggregations: [], nested: %{}, options: %{}
 
   @type t :: %__MODULE__{}
 
@@ -48,9 +48,13 @@ defmodule ExlasticSearch.Aggregation do
   Convert to the es representation of the aggregation
   """
   def realize(%__MODULE__{aggregations: aggs, nested: nested, options: opts}) do
-    %{aggs: Enum.into(aggs, %{}, fn {key, agg} -> {key, with_nested(realize(agg), nested, key)} end)
-            |> Map.merge(opts)}
+    %{
+      aggs:
+        Enum.into(aggs, %{}, fn {key, agg} -> {key, with_nested(realize(agg), nested, key)} end)
+        |> Map.merge(opts)
+    }
   end
+
   def realize(map) when is_map(map), do: map
 
   def with_nested(aggregation, nested, key) do

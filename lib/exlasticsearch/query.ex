@@ -4,8 +4,8 @@ defmodule ExlasticSearch.Query do
 
   ```
   Queryable.search_query()
-  |> must(math(field, value))
-  |> should(match_phrash(field, value, opts))
+  |> must(match(field, value))
+  |> should(match_phrase(field, value, opts))
   |> filter(term(filter_field, value))
   |> realize()
   ```
@@ -23,28 +23,26 @@ defmodule ExlasticSearch.Query do
 
   alias __MODULE__
 
-  defstruct [
-    type: :bool,
-    queryable: nil,
-    must: [],
-    should: [],
-    filter: [],
-    must_not: [],
-    options: %{},
-    sort: [],
-    index_type: :read
-  ]
+  defstruct type: :bool,
+            queryable: nil,
+            must: [],
+            should: [],
+            filter: [],
+            must_not: [],
+            options: %{},
+            sort: [],
+            index_type: :read
 
   @type t :: %__MODULE__{}
 
-  @type field :: String.t | atom
+  @type field :: String.t() | atom
 
   @query_keys [:must, :should, :filter, :must_not]
 
   @doc """
   Builds a match phrase query clause
   """
-  @spec match_phrase(field, String.t, Keyword.t) :: map
+  @spec match_phrase(field, String.t(), Keyword.t()) :: map
   def match_phrase(field, query, opts \\ []) do
     %{match_phrase: %{field => Enum.into(opts, %{query: query})}}
   end
@@ -52,16 +50,16 @@ defmodule ExlasticSearch.Query do
   @doc """
   Builds a match query clause
   """
-  @spec match(field, String.t) :: map
+  @spec match(field, String.t()) :: map
   def match(field, query), do: %{match: %{field => query}}
 
-  @spec match(field, String.t, Keyword.t) :: map
+  @spec match(field, String.t(), Keyword.t()) :: map
   def match(field, query, opts), do: %{match: %{field => Enum.into(opts, %{query: query})}}
 
   @doc """
   Multimatch query clause
   """
-  @spec multi_match([field], String.t, Keyword.t) :: map
+  @spec multi_match([field], String.t(), Keyword.t()) :: map
   def multi_match(fields, query, opts \\ []) do
     %{multi_match: Enum.into(opts, %{query: query, fields: fields, type: :best_fields})}
   end
@@ -81,7 +79,7 @@ defmodule ExlasticSearch.Query do
   @doc """
   Query string query type, that applies ES standard query rewriting
   """
-  @spec query_string(String.t, Keyword.t) :: map
+  @spec query_string(String.t(), Keyword.t()) :: map
   def query_string(query, opts \\ []), do: %{query_string: Enum.into(opts, %{query: query})}
 
   @doc """
@@ -125,7 +123,7 @@ defmodule ExlasticSearch.Query do
   @doc """
   Adds a sort clause to the ES query
   """
-  @spec sort(t, field, String.t | atom) :: t
+  @spec sort(t, field, String.t() | atom) :: t
   def sort(%Query{sort: sorts} = query, field, direction \\ "asc") do
     %{query | sort: [{field, direction} | sorts]}
   end
@@ -133,19 +131,19 @@ defmodule ExlasticSearch.Query do
   @doc """
   Converts a query to a function score query and adds the given `script` for scoring
   """
-  @spec script_score(t, String.t, Keyword.t) :: t
+  @spec script_score(t, String.t(), Keyword.t()) :: t
   def script_score(%Query{options: options} = query, script, opts \\ []) do
     script = Enum.into(opts, %{source: script})
     %{query | type: :function_score, options: Map.put(options, :script, script)}
   end
 
-  @spec function_score(t, [term], Keyword.t) :: t
+  @spec function_score(t, [term], Keyword.t()) :: t
   def function_score(%Query{options: options} = query, functions, opts \\ []) do
     functions = Enum.into(opts, %{functions: functions})
     %{query | type: :function_score, options: Map.merge(options, functions)}
   end
 
-  @spec field_value_factor(t, term, Keyword.t) :: t
+  @spec field_value_factor(t, term, Keyword.t()) :: t
   def field_value_factor(%Query{options: options} = query, fvf, opts \\ []) do
     fvf = Enum.into(opts, %{field_value_factor: fvf})
     %{query | type: :function_score, options: Map.merge(options, fvf)}
@@ -182,7 +180,7 @@ defmodule ExlasticSearch.Query do
   @doc """
   Add options to the current bool compound query (for instance the minimum number of accepted matches)
   """
-  @spec options(t, map | Keyword.t) :: t
+  @spec options(t, map | Keyword.t()) :: t
   def options(%Query{} = query, opts), do: %{query | options: Map.new(opts)}
 
   defp include_if_present(query) do
@@ -197,14 +195,19 @@ defmodule ExlasticSearch.Query do
 
   defp query_clause(%Query{type: :function_score} = query),
     do: %{function_score: transform_query(query)}
+
   defp query_clause(%Query{type: :nested} = query),
     do: %{nested: transform_query(query)}
+
   defp query_clause(%Query{type: :constant_score, options: options} = query),
-    do: %{constant_score:  Map.merge(include_if_present(query), options)}
+    do: %{constant_score: Map.merge(include_if_present(query), options)}
+
   defp query_clause(%Query{options: options} = query),
     do: %{bool: Map.merge(include_if_present(query), options)}
+
   defp query_clause(clauses) when is_list(clauses),
     do: Enum.map(clauses, &query_clause/1)
+
   defp query_clause(clause), do: clause
 
   defp add_sort(query, %Query{sort: []}), do: query

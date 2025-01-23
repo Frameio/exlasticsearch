@@ -35,7 +35,7 @@ defmodule ExlasticSearch.Response do
 
       def new(map), do: struct(__MODULE__, map)
 
-      defoverridable [to_model: 3]
+      defoverridable to_model: 3
     end
   end
 
@@ -60,14 +60,16 @@ defmodule ExlasticSearch.Response do
     end)
     |> Map.new()
   end
+
   def convert_keys(_, _), do: %{}
 
   defp parse_assoc(:many, value, func) when is_list(value),
     do: Enum.map(value, func)
+
   defp parse_assoc(:one, value, func) when is_map(value),
     do: func.(value)
-  defp parse_assoc(_, _, _), do: nil
 
+  defp parse_assoc(_, _, _), do: nil
 
   @doc """
   Opens up the schema definition macro.  Once closed, the following will be defined:
@@ -88,7 +90,7 @@ defmodule ExlasticSearch.Response do
                       |> Enum.uniq()
       defstruct @all_attributes
 
-      @parse_spec @all_attributes |> Enum.map(& {Atom.to_string(&1), &1})
+      @parse_spec @all_attributes |> Enum.map(&{Atom.to_string(&1), &1})
 
       def __schema__(:parse_spec), do: @parse_spec
 
