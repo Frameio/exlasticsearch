@@ -159,8 +159,7 @@ defmodule ExlasticSearch.Query do
   """
   @spec realize(t) :: map
   def realize(%Query{type: :nested} = query) do
-    %{query: query_clause(query)}
-    |> add_sort(query)
+    add_sort(%{query: query_clause(query)}, query)
   end
 
   def realize(%Query{type: :function_score, options: %{script: script} = opts} = query) do
@@ -173,8 +172,7 @@ defmodule ExlasticSearch.Query do
   end
 
   def realize(%Query{type: :bool} = query) do
-    %{query: query_clause(query)}
-    |> add_sort(query)
+    add_sort(%{query: query_clause(query)}, query)
   end
 
   @doc """
@@ -193,20 +191,16 @@ defmodule ExlasticSearch.Query do
     end)
   end
 
-  defp query_clause(%Query{type: :function_score} = query),
-    do: %{function_score: transform_query(query)}
+  defp query_clause(%Query{type: :function_score} = query), do: %{function_score: transform_query(query)}
 
-  defp query_clause(%Query{type: :nested} = query),
-    do: %{nested: transform_query(query)}
+  defp query_clause(%Query{type: :nested} = query), do: %{nested: transform_query(query)}
 
   defp query_clause(%Query{type: :constant_score, options: options} = query),
     do: %{constant_score: Map.merge(include_if_present(query), options)}
 
-  defp query_clause(%Query{options: options} = query),
-    do: %{bool: Map.merge(include_if_present(query), options)}
+  defp query_clause(%Query{options: options} = query), do: %{bool: Map.merge(include_if_present(query), options)}
 
-  defp query_clause(clauses) when is_list(clauses),
-    do: Enum.map(clauses, &query_clause/1)
+  defp query_clause(clauses) when is_list(clauses), do: Enum.map(clauses, &query_clause/1)
 
   defp query_clause(clause), do: clause
 

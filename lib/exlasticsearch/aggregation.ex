@@ -8,33 +8,33 @@ defmodule ExlasticSearch.Aggregation do
   @type t :: %__MODULE__{}
 
   @doc "create a new aggregation specification"
-  def new(), do: %__MODULE__{}
+  def new, do: %__MODULE__{}
 
   @doc """
   Bucket a query by a given term
   """
   def terms(%{aggregations: aggs} = agg, name, options) do
-    %{agg | aggregations: [{name, %{terms: Enum.into(options, %{})}} | aggs]}
+    %{agg | aggregations: [{name, %{terms: Map.new(options)}} | aggs]}
   end
 
   @doc """
   A composite aggregation
   """
   def composite(%{aggregations: aggs} = agg, name, sources, opts \\ []) do
-    options = Enum.into(opts, %{})
+    options = Map.new(opts)
     %{agg | aggregations: [{name, %{composite: Map.merge(%{sources: sources}, options)}} | aggs]}
   end
 
   @doc """
   The source for a composite aggregation, eg `composite_source(:age, :terms, field: :age)`
   """
-  def composite_source(name, type, opts), do: %{name => %{type => Enum.into(opts, %{})}}
+  def composite_source(name, type, opts), do: %{name => %{type => Map.new(opts)}}
 
   @doc """
   Return the top results for a query or aggregation scope
   """
   def top_hits(%{aggregations: aggs} = agg, name, options) do
-    %{agg | aggregations: [{name, %{top_hits: Enum.into(options, %{})}} | aggs]}
+    %{agg | aggregations: [{name, %{top_hits: Map.new(options)}} | aggs]}
   end
 
   @doc """
@@ -50,7 +50,8 @@ defmodule ExlasticSearch.Aggregation do
   def realize(%__MODULE__{aggregations: aggs, nested: nested, options: opts}) do
     %{
       aggs:
-        Enum.into(aggs, %{}, fn {key, agg} -> {key, with_nested(realize(agg), nested, key)} end)
+        aggs
+        |> Map.new(fn {key, agg} -> {key, with_nested(realize(agg), nested, key)} end)
         |> Map.merge(opts)
     }
   end

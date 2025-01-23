@@ -39,8 +39,8 @@ defmodule ExlasticSearch.Model do
 
   defmacro __using__(_) do
     quote do
-      import ExlasticSearch.Model
       import Ecto.Query, only: [from: 2]
+      import ExlasticSearch.Model
 
       @es_query %ExlasticSearch.Query{
         queryable: __MODULE__,
@@ -53,9 +53,9 @@ defmodule ExlasticSearch.Model do
       }
       @mapping_options %{}
 
-      def es_type(column), do: __schema__(:type, column) |> ecto_to_es()
+      def es_type(column), do: :type |> __schema__(column) |> ecto_to_es()
 
-      def search_query(), do: @es_query
+      def search_query, do: @es_query
 
       def indexing_query(query \\ __MODULE__) do
         Ecto.Query.from(r in query, order_by: [asc: :id])
@@ -79,7 +79,7 @@ defmodule ExlasticSearch.Model do
       @read_version :ignore
       @index_version :ignore
 
-      def __doc_type__(), do: unquote(type)
+      def __doc_type__, do: unquote(type)
 
       unquote(block)
 
@@ -89,30 +89,26 @@ defmodule ExlasticSearch.Model do
       def __es_index__(:delete), do: __es_index__(:read)
       def __es_index__(custom_index), do: "#{unquote(type)}_#{custom_index}"
 
-      def __es_mappings__() do
-        @mapping_options
-        |> Map.put(
+      def __es_mappings__ do
+        Map.put(
+          @mapping_options,
           :properties,
-          @es_mappings
-          |> Enum.into(%{}, fn {key, value} ->
-            {key, value |> Enum.into(%{type: es_type(key)})}
-          end)
+          Map.new(@es_mappings, fn {key, value} -> {key, Enum.into(value, %{type: es_type(key)})} end)
         )
       end
 
-      @es_mapped_cols @es_mappings |> Enum.map(&elem(&1, 0))
+      @es_mapped_cols Enum.map(@es_mappings, &elem(&1, 0))
       @es_decode_template @es_mappings
                           |> Enum.map(fn {k, v} -> {k, Map.new(v)} end)
                           |> Enum.map(&ExlasticSearch.Model.mapping_template/1)
 
-      def __mappings__(), do: @es_mapped_cols
+      def __mappings__, do: @es_mapped_cols
 
-      def __mapping_options__(), do: @mapping_options
+      def __mapping_options__, do: @mapping_options
 
-      def __es_decode_template__(), do: @es_decode_template
+      def __es_decode_template__, do: @es_decode_template
 
-      def es_decode(map) when is_map(map),
-        do: struct(__MODULE__.SearchResult, es_decode(map, __MODULE__))
+      def es_decode(map) when is_map(map), do: struct(__MODULE__.SearchResult, es_decode(map, __MODULE__))
 
       def es_decode(_), do: nil
 
@@ -135,6 +131,7 @@ defmodule ExlasticSearch.Model do
 
       quote do
         defmodule SearchResult do
+          @moduledoc false
           defstruct unquote(columns)
         end
       end
@@ -160,7 +157,7 @@ defmodule ExlasticSearch.Model do
   """
   defmacro settings(settings) do
     quote do
-      def __es_settings__(), do: %{settings: unquote(settings)}
+      def __es_settings__, do: %{settings: unquote(settings)}
     end
   end
 
@@ -192,8 +189,7 @@ defmodule ExlasticSearch.Model do
   Converts a search result to `model`'s search result type
   """
   def es_decode(source, model) do
-    model.__es_decode_template__()
-    |> do_decode(source)
+    do_decode(model.__es_decode_template__(), source)
   end
 
   def index_version(type), do: "#{type}s"
@@ -210,12 +206,10 @@ defmodule ExlasticSearch.Model do
   end
 
   defp do_decode(template, source) when is_map(source) do
-    template
-    |> Enum.map(fn
+    Map.new(template, fn
       {key, atom_key, :preserve} -> {atom_key, Map.get(source, key)}
       {key, atom_key, template} -> {atom_key, do_decode(template, Map.get(source, key))}
     end)
-    |> Enum.into(%{})
   end
 
   defp do_decode(template, source) when is_list(source) do

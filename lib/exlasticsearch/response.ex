@@ -22,7 +22,8 @@ defmodule ExlasticSearch.Response do
       import ExlasticSearch.Response
 
       def parse(record, model, index_type) do
-        __schema__(:parse_spec)
+        :parse_spec
+        |> __schema__()
         |> convert_keys(record)
         |> parse_associations(__schema__(:associations), model, index_type)
         |> to_model(model, index_type)
@@ -41,31 +42,25 @@ defmodule ExlasticSearch.Response do
   Utility for recursively parsing response associations
   """
   def parse_associations(response, associations, model, index_type) do
-    associations
-    |> Enum.map(fn {type, field, parser} ->
+    Enum.into(associations, response, fn {type, field, parser} ->
       {field, parse_assoc(type, response[field], &parser.parse(&1, model, index_type))}
     end)
-    |> Enum.into(response)
   end
 
   @doc """
   Safe conversion of string keyed ES response maps to structifiable atom keyed maps
   """
   def convert_keys(conversion_table, map) when is_map(map) do
-    conversion_table
-    |> Enum.map(fn {k, ka} ->
+    Map.new(conversion_table, fn {k, ka} ->
       {ka, map[k]}
     end)
-    |> Map.new()
   end
 
   def convert_keys(_, _), do: %{}
 
-  defp parse_assoc(:many, value, func) when is_list(value),
-    do: Enum.map(value, func)
+  defp parse_assoc(:many, value, func) when is_list(value), do: Enum.map(value, func)
 
-  defp parse_assoc(:one, value, func) when is_map(value),
-    do: func.(value)
+  defp parse_assoc(:one, value, func) when is_map(value), do: func.(value)
 
   defp parse_assoc(_, _, _), do: nil
 
@@ -83,12 +78,13 @@ defmodule ExlasticSearch.Response do
 
       unquote(block)
 
-      @all_attributes Enum.map(@associations, &elem(&1, 1))
+      @all_attributes @associations
+                      |> Enum.map(&elem(&1, 1))
                       |> Enum.concat(@attributes)
                       |> Enum.uniq()
       defstruct @all_attributes
 
-      @parse_spec @all_attributes |> Enum.map(&{Atom.to_string(&1), &1})
+      @parse_spec Enum.map(@all_attributes, &{Atom.to_string(&1), &1})
 
       def __schema__(:parse_spec), do: @parse_spec
 

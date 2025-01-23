@@ -20,7 +20,8 @@ defmodule ExlasticSearch.Retry.ExponentialBackoff do
         {:ok, result}
 
       {:error, _} ->
-        sleep(initial, retry, jitter)
+        initial
+        |> sleep(retry, jitter)
         |> :timer.sleep()
 
         do_retry(fun, max, initial, jitter, retry + 1)
@@ -29,7 +30,7 @@ defmodule ExlasticSearch.Retry.ExponentialBackoff do
 
   defp sleep(initial, retry, jitter) do
     jitter = :rand.uniform(jitter)
-    exp = :math.pow(2, retry) |> round()
+    exp = 2 |> :math.pow(retry) |> round()
     jitter + initial * exp
   end
 end

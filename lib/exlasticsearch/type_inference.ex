@@ -11,6 +11,8 @@ defmodule ExlasticSearch.TypeInference do
 
   Then configure it with `config :exlasticsearch, :type_inference, MyTypeInference`
   """
+  use ExlasticSearch.TypeInference.Base
+
   defmodule API do
     @moduledoc """
     Behaviour for inferring module types. A default implementation is available
@@ -18,6 +20,4 @@ defmodule ExlasticSearch.TypeInference do
     """
     @callback infer(atom) :: atom
   end
-
-  use ExlasticSearch.TypeInference.Base
 end

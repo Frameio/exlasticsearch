@@ -3,6 +3,7 @@ defmodule ExlasticSearch.Response.Search do
   Elasticsearch Search response structure
   """
   use ExlasticSearch.Response
+
   alias ExlasticSearch.Response.Hits
 
   schema do
