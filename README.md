@@ -56,8 +56,6 @@ This library requires `elastix` (an elixir elasticsearch http client).  So refer
 ```elixir
 config :exlasticsearch, :type_inference, ExlasticSearch.TypeInference
 
-config :exlasticsearch, :monitoring, ExlasticSearch.Monitoring.Mock
-
 config :exlasticsearch, ExlasticSearch.Repo,
   url: "http://localhost:9200"
 ```

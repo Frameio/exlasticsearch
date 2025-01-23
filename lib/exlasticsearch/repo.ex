@@ -1,6 +1,6 @@
 defmodule ExlasticSearch.Repo do
   @moduledoc """
-  API executor for elasticsearch.  The generate pattern is to define a `ExlasticSearch.Model`
+  API executor for elasticsearch. The generate pattern is to define a `ExlasticSearch.Model`
   on an ecto model, then call any of these functions to manage the model.
 
   To configure the url the repo points to, do:
@@ -311,13 +311,9 @@ defmodule ExlasticSearch.Repo do
     do: struct |> Indexable.preload(index) |> Indexable.document(index)
 
   defp es_url(index) do
-    case Application.get_env(:exlasticsearch, __MODULE__)[index] do
-      nil ->
-        Application.get_env(:exlasticsearch, __MODULE__)[:url]
+    config = Application.get_env(:exlasticsearch, __MODULE__)
 
-      url ->
-        url
-    end
+    config[index] || config[:url]
   end
 
   defp decode(result, response, model, index_type \\ :read)
