@@ -18,8 +18,6 @@ defmodule ExlasticSearch.Repo do
 
   @chunk_size 2000
   @type response :: {:ok, %HTTPoison.Response{}} | {:error, any}
-  @log_level Application.get_env(:exlasticsearch, __MODULE__, [])
-             |> Keyword.get(:log_level, :debug)
 
   @doc """
   Creates an index as defined in `model`
@@ -212,7 +210,7 @@ defmodule ExlasticSearch.Repo do
   @doc """
   Gets an ES document by _id
   """
-  @spec get(struct) ::{:ok, %Response.Record{}} | {:error, any}
+  @spec get(struct) :: {:ok, %Response.Record{}} | {:error, any}
   def get(%{__struct__: model} = struct, index_type \\ :read) do
     es_url(index_type)
     |> Document.get(model.__es_index__(index_type), model.__doc_type__(), Indexable.id(struct))
@@ -246,12 +244,14 @@ defmodule ExlasticSearch.Repo do
     |> Enum.map(& &1.__es_index__(index_type))
     |> Enum.join(",")
   end
+
   defp model_to_index(model, index_type), do: model.__es_index__(index_type)
 
   defp model_to_doc_types(models) when is_list(models) do
     models
     |> Enum.map(& &1.__doc_type__())
   end
+
   defp model_to_doc_types(model), do: [model.__doc_type__()]
 
   @doc """
@@ -298,7 +298,12 @@ defmodule ExlasticSearch.Repo do
   end
 
   defp log_response(response) do
-    Logger.log(@log_level, fn -> "Elasticsearch  response: #{inspect(response)}" end)
+    log_level =
+      :exlasticsearch
+      |> Application.get_env(__MODULE__, [])
+      |> Keyword.get(:log_level, :debug)
+
+    Logger.log(log_level, fn -> "Elasticsearch  response: #{inspect(response)}" end)
     response
   end
 
@@ -306,16 +311,17 @@ defmodule ExlasticSearch.Repo do
     do: struct |> Indexable.preload(index) |> Indexable.document(index)
 
   defp es_url(index) do
-
     case Application.get_env(:exlasticsearch, __MODULE__)[index] do
       nil ->
         Application.get_env(:exlasticsearch, __MODULE__)[:url]
+
       url ->
         url
     end
   end
 
   defp decode(result, response, model, index_type \\ :read)
+
   defp decode({:ok, %HTTPoison.Response{body: body}}, response, model, index_type) do
     case response.parse(body, model, index_type) do
       nil -> {:error, :not_found}

@@ -7,12 +7,14 @@ defmodule ExlasticSearch.Retry.Decorator do
   ```
   """
   use Decorator.Define, retry: 0
-  @config Application.get_env(:exlasticsearch, :retry, [])
 
   def retry(body, _ctx) do
-    {strategy, config} = Keyword.pop(@config, :strategy, ExlasticSearch.Retry.ExponentialBackoff)
+    config = Application.get_env(:exlasticsearch, :retry, [])
+    {strategy, config} = Keyword.pop(config, :strategy, ExlasticSearch.Retry.ExponentialBackoff)
+
     quote do
       unquote(strategy).retry(fn -> unquote(body) end, unquote(config))
     end
   end
 end
+
