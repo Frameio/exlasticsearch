@@ -1,19 +1,26 @@
 # ExlasticSearch
 
-An elasticsearch DSL for mapping Ecto models to elasticsearch mappings, along with elixir
-friendly query wrappers, response formatting and the like.
+[![Module Version](https://img.shields.io/hexpm/v/exlasticsearch.svg)](https://hex.pm/packages/exlasticsearch)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/exlasticsearch/)
+[![Total Download](https://img.shields.io/hexpm/dt/exlasticsearch.svg)](https://hex.pm/packages/exlasticsearch)
+[![License](https://img.shields.io/hexpm/l/exlasticsearch.svg)](https://github.com/Frameio/exlasticsearch/blob/master/LICENSE)
+[![Last Updated](https://img.shields.io/github/last-commit/Frameio/exlasticsearch.svg)](https://github.com/Frameio/exlasticsearch/commits/master)
+
+An [Elasticsearch](https://www.elastic.co/elasticsearch/) DSLs for mapping Ecto
+models to Elasticsearch mappings, along with Elixir friendly query wrappers,
+response formatting and the like.
 
 ## Installation
 
 ```elixir
 def deps do
   [
-    {:exlasticsearch, "~> 1.3.3"}
+    {:exlasticsearch, "~> 2.2.3"}
   ]
 end
 ```
 
-Docs are available on [hex](https://hexdocs.pm/exlasticsearch/0.2.2)
+Docs are available on [hex](https://hexdocs.pm/exlasticsearch/)
 
 ## Usage
 
@@ -46,12 +53,12 @@ A repo model like Ecto is provided, so a with ability to do most restful operati
 addition to calling search APIs with the query structs above.
 
 If additional data needs to be fetched or formatted prior to insertion into elastic, the `ExlasticSearch.Indexable`
-protocol can be implemented to do that for you.  A default implementation can also be generated as part of using
+protocol can be implemented to do that for you. A default implementation can also be generated as part of using
 the `ExlasticSearch.Model` macro.
 
 ## Configuration
 
-This library requires `elastix` (an elixir elasticsearch http client).  So refer to it for any http related configuration. In addition, there are the following configuration options:
+This library requires [Elastix](https://hex.pm/packages/elastix), an Elixir Elasticsearch HTTP client. So refer to it for any HTTP related configuration. In addition, there are the following configuration options:
 
 ```elixir
 config :exlasticsearch, :type_inference, ExlasticSearch.TypeInference
@@ -59,3 +66,9 @@ config :exlasticsearch, :type_inference, ExlasticSearch.TypeInference
 config :exlasticsearch, ExlasticSearch.Repo,
   url: "http://localhost:9200"
 ```
+
+## Copyright and License
+
+Copyright (c) 2018 Frame.io
+
+This software is released under the [MIT License](./LICENSE.md).

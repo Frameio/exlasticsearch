@@ -37,7 +37,7 @@ defmodule Exlasticsearch.MixProject do
       {:ecto, "~> 3.0"},
       {:scrivener_ecto, "~> 3.0"},
       {:decorator, "~> 1.2"},
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:styler, "~> 1.2", only: [:dev, :test], runtime: false}
     ]
   end
@@ -45,9 +45,14 @@ defmodule Exlasticsearch.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md"],
+      extras: [
+        "README.md",
+        "LICENSE.md": [title: "License"]
+      ],
+      api_reference: false,
       source_ref: "v#{@version}",
-      source_url: @source_url
+      source_url: @source_url,
+      formatters: ["html"]
     ]
   end
 
@@ -55,6 +60,7 @@ defmodule Exlasticsearch.MixProject do
 
   defp package do
     [
+      description: "Ecto-friendly Elasticsearch DSL",
       maintainers: ["Michael Guarino"],
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url}

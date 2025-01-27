@@ -1,13 +1,13 @@
 defmodule ExlasticSearch.BulkOperation do
   @moduledoc """
-  Handles bulk request generation
+  Handles bulk request generation.
   """
 
   alias ExlasticSearch.Indexable
 
   @doc """
   Generates a request for inserts, updates and deletes
-  that can be sent as a bulk request using Elastix
+  that can be sent as a bulk request using Elastix.
   """
   def bulk_operation({:delete, _struct, _index} = instruction), do: bulk_operation_delete(instruction)
 
