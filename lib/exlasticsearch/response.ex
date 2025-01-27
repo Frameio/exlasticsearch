@@ -1,6 +1,8 @@
 defmodule ExlasticSearch.Response do
   @moduledoc """
-  Base module for ES response parsing.  Works off a few macros, `schema/1`, `field/1`, `has_many/2`, `has_one/2`
+  Base module for ES response parsing.
+
+  Works off a few macros, `schema/1`, `field/1`, `has_many/2`, `has_one/2`.
 
   The usage is more or less:
 
@@ -13,9 +15,11 @@ defmodule ExlasticSearch.Response do
       end
 
   This will define:
-  * a struct for carrying the response
-  * `parse/2` - converts a json decoded map from ES to the given response struct, and converting any models appropriately
-  * `to_model/2` - performs model conversion if possible (defaults to no-op)
+
+    * a struct for carrying the response
+    * `parse/2` - converts a json decoded map from ES to the given response struct, and converting any models appropriately
+    * `to_model/2` - performs model conversion if possible (defaults to no-op)
+
   """
   defmacro __using__(_) do
     quote do
@@ -39,7 +43,7 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Utility for recursively parsing response associations
+  Utility for recursively parsing response associations.
   """
   def parse_associations(response, associations, model, index_type) do
     Enum.into(associations, response, fn {type, field, parser} ->
@@ -48,7 +52,7 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Safe conversion of string keyed ES response maps to structifiable atom keyed maps
+  Safe conversion of string keyed ES response maps to structifiable atom keyed maps.
   """
   def convert_keys(conversion_table, map) when is_map(map) do
     Map.new(conversion_table, fn {k, ka} ->
@@ -67,9 +71,10 @@ defmodule ExlasticSearch.Response do
   @doc """
   Opens up the schema definition macro.  Once closed, the following will be defined:
 
-  * `__schema__(:parse_spec)` - A table for converting string keyed maps to atom keyed
-  * `__schema__(:attributes)` - basic field attributes
-  * `__schema__(:associations)` - a table of associations for the response, along with the responsible parser
+    * `__schema__(:parse_spec)` - A table for converting string keyed maps to atom keyed
+    * `__schema__(:attributes)` - basic field attributes
+    * `__schema__(:associations)` - a table of associations for the response, along with the responsible parser
+
   """
   defmacro schema(block) do
     quote do
@@ -94,7 +99,7 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Adds a simple field attribute
+  Adds a simple field attribute.
   """
   defmacro field(field) do
     quote do
@@ -103,11 +108,13 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Adds a has_many relation or the parser, which assumes a list value
+  Adds a has_many relation or the parser, which assumes a list value.
 
   Accepts:
-  * field - the name of the relation
-  * parser - module of the responsible parser for parsing it
+
+    * field - the name of the relation
+    * parser - module of the responsible parser for parsing it
+
   """
   defmacro has_many(field, parser) do
     quote do
@@ -116,11 +123,13 @@ defmodule ExlasticSearch.Response do
   end
 
   @doc """
-  Adds a has_one relation or the parser
+  Adds a has_one relation or the parser.
 
   Accepts:
-  * field - the name of the relation
-  * parser - module of the responsible parser for parsing it
+
+    * field - the name of the relation
+    * parser - module of the responsible parser for parsing it
+
   """
   defmacro has_one(field, parser) do
     quote do

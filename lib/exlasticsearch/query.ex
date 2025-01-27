@@ -11,8 +11,10 @@ defmodule ExlasticSearch.Query do
       |> realize()
 
   An ES query has 3 main clauses, must, should and filter. Must and should are near equivalents
-  except that must clauses will reject records that fail to match.  Filters require matches but do
-  not contribute to scoring, while must/should both do.  Nesting queries within queries is also supported
+  except that must clauses will reject records that fail to match.
+
+  Filters require matches but do not contribute to scoring, while must/should both do.
+  Nesting queries within queries is also supported
 
   Currently the module only supports the boolean style of compound query, but we could add support
   for the others as need be.
@@ -40,7 +42,7 @@ defmodule ExlasticSearch.Query do
   @query_keys [:must, :should, :filter, :must_not]
 
   @doc """
-  Builds a match phrase query clause
+  Builds a match phrase query clause.
   """
   @spec match_phrase(field, String.t(), Keyword.t()) :: map
   def match_phrase(field, query, opts \\ []) do
@@ -48,7 +50,7 @@ defmodule ExlasticSearch.Query do
   end
 
   @doc """
-  Builds a match query clause
+  Builds a match query clause.
   """
   @spec match(field, String.t()) :: map
   def match(field, query), do: %{match: %{field => query}}
@@ -57,7 +59,7 @@ defmodule ExlasticSearch.Query do
   def match(field, query, opts), do: %{match: %{field => Enum.into(opts, %{query: query})}}
 
   @doc """
-  Multimatch query clause
+  Multimatch query clause.
   """
   @spec multi_match([field], String.t(), Keyword.t()) :: map
   def multi_match(fields, query, opts \\ []) do
@@ -65,55 +67,55 @@ defmodule ExlasticSearch.Query do
   end
 
   @doc """
-  Term query clause
+  Term query clause.
   """
   @spec term(field, term) :: map
   def term(field, term), do: %{term: %{field => term}}
 
   @doc """
-  ids query clause
+  ids query clause.
   """
   @spec ids(list) :: map
   def ids(ids), do: %{ids: %{values: ids}}
 
   @doc """
-  Query string query type, that applies ES standard query rewriting
+  Query string query type, that applies ES standard query rewriting.
   """
   @spec query_string(String.t(), Keyword.t()) :: map
   def query_string(query, opts \\ []), do: %{query_string: Enum.into(opts, %{query: query})}
 
   @doc """
-  terms query clause
+  Terms query clause.
   """
   @spec terms(field, [term]) :: map
   def terms(field, terms), do: %{terms: %{field => terms}}
 
   @doc """
-  range query clause
+  Range query clause.
   """
   @spec range(field, map) :: map
   def range(field, range), do: %{range: %{field => range}}
 
   @doc """
-  Appends a new filter scope to the running query
+  Appends a new filter scope to the running query.
   """
   @spec filter(t, map) :: t
   def filter(%Query{filter: filters} = query, filter), do: %{query | filter: [filter | filters]}
 
   @doc """
-  Appends a new must scope to the running query
+  Appends a new must scope to the running query.
   """
   @spec must(t, map) :: t
   def must(%Query{must: musts} = query, must), do: %{query | must: [must | musts]}
 
   @doc """
-  Appends a new should scope to the running query
+  Appends a new should scope to the running query.
   """
   @spec should(t, map) :: t
   def should(%Query{should: shoulds} = query, should), do: %{query | should: [should | shoulds]}
 
   @doc """
-  Appends a new must_not scope to the running query
+  Appends a new must_not scope to the running query.
   """
   @spec must_not(t, map) :: t
   def must_not(%Query{must_not: must_nots} = query, must_not) do
@@ -121,7 +123,7 @@ defmodule ExlasticSearch.Query do
   end
 
   @doc """
-  Adds a sort clause to the ES query
+  Adds a sort clause to the ES query.
   """
   @spec sort(t, field, String.t() | atom) :: t
   def sort(%Query{sort: sorts} = query, field, direction \\ "asc") do
@@ -129,7 +131,7 @@ defmodule ExlasticSearch.Query do
   end
 
   @doc """
-  Converts a query to a function score query and adds the given `script` for scoring
+  Converts a query to a function score query and adds the given `script` for scoring.
   """
   @spec script_score(t, String.t(), Keyword.t()) :: t
   def script_score(%Query{options: options} = query, script, opts \\ []) do
@@ -155,7 +157,7 @@ defmodule ExlasticSearch.Query do
   end
 
   @doc """
-  Converts a `Query` struct into an ES compliant bool or function score compound query
+  Converts a `Query` struct into an ES compliant bool or function score compound query.
   """
   @spec realize(t) :: map
   def realize(%Query{type: :nested} = query) do
@@ -176,7 +178,7 @@ defmodule ExlasticSearch.Query do
   end
 
   @doc """
-  Add options to the current bool compound query (for instance the minimum number of accepted matches)
+  Add options to the current bool compound query (for instance the minimum number of accepted matches).
   """
   @spec options(t, map | Keyword.t()) :: t
   def options(%Query{} = query, opts), do: %{query | options: Map.new(opts)}

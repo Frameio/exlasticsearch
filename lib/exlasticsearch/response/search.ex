@@ -1,6 +1,6 @@
 defmodule ExlasticSearch.Response.Search do
   @moduledoc """
-  Elasticsearch Search response structure
+  Elasticsearch Search response structure.
   """
   use ExlasticSearch.Response
 
