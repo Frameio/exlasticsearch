@@ -32,7 +32,7 @@ defmodule Exlasticsearch.MixProject do
   defp deps do
     [
       {:flow, "~> 1.0"},
-      {:poison, "~> 3.1"},
+      {:jason, "~> 1.4.0", optional: true},
       {:elastix, "~> 0.10.0"},
       {:ecto, "~> 3.0"},
       {:scrivener_ecto, "~> 3.0"},
