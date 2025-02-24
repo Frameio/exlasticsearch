@@ -1,7 +1,7 @@
 defmodule Exlasticsearch.MixProject do
   use Mix.Project
 
-  @version "2.2.3-dev"
+  @version "2.2.4"
   @source_url "https://github.com/Frameio/exlasticsearch"
 
   def project do
