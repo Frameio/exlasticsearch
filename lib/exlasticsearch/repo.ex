@@ -45,7 +45,7 @@ defmodule ExlasticSearch.Repo do
   """
   def update_index(model, index \\ :index) do
     url = es_url(index) <> "/#{model.__es_index__(index)}/_settings"
-    HTTP.put(url, Poison.encode!(model.__es_settings__()))
+    HTTP.put(url, json_library().encode!(model.__es_settings__()))
   end
 
   @doc """
@@ -99,7 +99,7 @@ defmodule ExlasticSearch.Repo do
     target_index = model.__es_index__(target)
 
     json =
-      Poison.encode!(%{
+      json_library().encode!(%{
         actions: [
           %{
             add: %{
@@ -335,6 +335,11 @@ defmodule ExlasticSearch.Repo do
     config = Application.get_env(:exlasticsearch, __MODULE__)
 
     config[index] || config[:url] || "http://localhost:9200"
+  end
+
+  def json_library do
+    config = Application.get_env(:exlasticsearch, __MODULE__)
+    config[:json_library] || Jason
   end
 
   defp decode(result, response, model, index_type \\ :read)

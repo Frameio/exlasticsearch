@@ -1,7 +1,7 @@
 defmodule Exlasticsearch.MixProject do
   use Mix.Project
 
-  @version "2.2.3-dev"
+  @version "2.2.4"
   @source_url "https://github.com/Frameio/exlasticsearch"
 
   def project do
@@ -32,7 +32,7 @@ defmodule Exlasticsearch.MixProject do
   defp deps do
     [
       {:flow, "~> 1.0"},
-      {:poison, "~> 3.1"},
+      {:jason, "~> 1.4.0", optional: true},
       {:elastix, "~> 0.10.0"},
       {:ecto, "~> 3.0"},
       {:scrivener_ecto, "~> 3.0"},

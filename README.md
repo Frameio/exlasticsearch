@@ -15,7 +15,7 @@ response formatting and the like.
 ```elixir
 def deps do
   [
-    {:exlasticsearch, "~> 2.2.3"}
+    {:exlasticsearch, "~> 2.2.4"}
   ]
 end
 ```
@@ -64,11 +64,12 @@ This library requires [Elastix](https://hex.pm/packages/elastix), an Elixir Elas
 config :exlasticsearch, :type_inference, ExlasticSearch.TypeInference
 
 config :exlasticsearch, ExlasticSearch.Repo,
-  url: "http://localhost:9200"
+  url: "http://localhost:9200",
+  json_library: Jason
 ```
 
 ## Copyright and License
 
-Copyright (c) 2018 Frame.io
+Copyright (c) 2025 Adobe/Frame.io
 
 This software is released under the [MIT License](./LICENSE.md).
