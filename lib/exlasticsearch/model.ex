@@ -85,7 +85,7 @@ defmodule ExlasticSearch.Model do
       @read_version :ignore
       @index_version :ignore
 
-      def __doc_type__(), do: unquote(doc_type)
+      def __doc_type__, do: unquote(doc_type)
 
       unquote(block)
 

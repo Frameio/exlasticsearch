@@ -78,6 +78,7 @@ defmodule ExlasticSearch.MultiVersionTestModel do
 end
 
 defmodule ExlasticSearch.TypelessTestModel do
+  @moduledoc false
   use Ecto.Schema
   use ExlasticSearch.Model
 
@@ -109,6 +110,7 @@ defmodule ExlasticSearch.TypelessTestModel do
 end
 
 defmodule ExlasticSearch.TypelessMultiVersionTestModel do
+  @moduledoc false
   use Ecto.Schema
   use ExlasticSearch.Model
 
@@ -138,7 +140,13 @@ defmodule ExlasticSearch.TypelessMultiVersionTestModel do
 end
 
 defimpl ExlasticSearch.Indexable,
-  for: [ExlasticSearch.TestModel, ExlasticSearch.TestModel2, ExlasticSearch.MultiVersionTestModel, ExlasticSearch.TypelessTestModel, ExlasticSearch.TypelessMultiVersionTestModel] do
+  for: [
+    ExlasticSearch.TestModel,
+    ExlasticSearch.TestModel2,
+    ExlasticSearch.MultiVersionTestModel,
+    ExlasticSearch.TypelessTestModel,
+    ExlasticSearch.TypelessMultiVersionTestModel
+  ] do
   def id(%{id: id}), do: id
 
   def document(struct) do

@@ -1,21 +1,14 @@
 defmodule ExlasticSearch.RepoTest do
   use ExUnit.Case, async: true
 
-  alias ExlasticSearch.{
-    Repo,
-    TestModel,
-    TestModel2,
-    TypelessTestModel,
-    Aggregation,
-    Query
-  }
-
+  alias ExlasticSearch.Aggregation
   alias ExlasticSearch.MultiVersionTestModel, as: MVTestModel
   alias ExlasticSearch.Query
   alias ExlasticSearch.Repo
   alias ExlasticSearch.TestModel
   alias ExlasticSearch.TestModel2
   alias ExlasticSearch.TypelessMultiVersionTestModel, as: TypelessMVTestModel
+  alias ExlasticSearch.TypelessTestModel
 
   setup_all do
     Repo.delete_index(TestModel)
@@ -212,11 +205,11 @@ defmodule ExlasticSearch.RepoTest do
         for i <- 1..3,
             do: %TypelessTestModel{id: Ecto.UUID.generate(), name: "name #{i}", age: i}
 
-      {:ok, _} = Enum.map(models, &{:index, &1, :es8}) |> Repo.bulk(:es8)
+      {:ok, _} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
 
       Repo.refresh(TypelessTestModel, :es8)
 
-      aggregation = Aggregation.new() |> Aggregation.terms(:age, field: :age, size: 2)
+      aggregation = Aggregation.terms(Aggregation.new(), :age, field: :age, size: 2)
 
       {:ok,
        %{
@@ -287,11 +280,11 @@ defmodule ExlasticSearch.RepoTest do
           }
         end
 
-      {:ok, _} = Enum.map(models, &{:index, &1, :es8}) |> Repo.bulk(:es8)
+      {:ok, _} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
 
       Repo.refresh(TypelessTestModel, :es8)
 
-      nested = Aggregation.new() |> Aggregation.top_hits(:hits, %{})
+      nested = Aggregation.top_hits(Aggregation.new(), :hits, %{})
 
       aggregation =
         Aggregation.new()
@@ -374,7 +367,7 @@ defmodule ExlasticSearch.RepoTest do
           }
         end
 
-      {:ok, _} = Enum.map(models, &{:index, &1, :es8}) |> Repo.bulk(:es8)
+      {:ok, _} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
 
       Repo.refresh(TypelessTestModel, :es8)
 
@@ -383,7 +376,7 @@ defmodule ExlasticSearch.RepoTest do
         Aggregation.composite_source(:age, :terms, field: :age, order: :asc)
       ]
 
-      aggregation = Aggregation.new() |> Aggregation.composite(:group, sources)
+      aggregation = Aggregation.composite(Aggregation.new(), :group, sources)
 
       {:ok,
        %{
@@ -448,7 +441,7 @@ defmodule ExlasticSearch.RepoTest do
       id2 = Ecto.UUID.generate()
       id3 = Ecto.UUID.generate()
 
-      rand_name = Ecto.UUID.generate() |> String.replace("-", "")
+      rand_name = String.replace(Ecto.UUID.generate(), "-", "")
 
       model1 = %TypelessTestModel{id: id1, name: rand_name}
       model2 = %TypelessTestModel{id: id2, name: rand_name}
@@ -471,8 +464,8 @@ defmodule ExlasticSearch.RepoTest do
       {:ok, %{hits: %{hits: results}}} = Repo.search(query, [])
 
       assert length(results) == 2
-      assert Enum.find(results, & &1._id == id1)
-      assert Enum.find(results, & &1._id == id2)
+      assert Enum.find(results, &(&1._id == id1))
+      assert Enum.find(results, &(&1._id == id2))
     end
 
     test "It will search in a multiple indexes" do
