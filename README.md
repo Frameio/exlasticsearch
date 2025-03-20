@@ -68,16 +68,6 @@ config :exlasticsearch, ExlasticSearch.Repo,
   json_library: Jason
 ```
 
-## Testing
-
-Run integration tests with local ElasticSearch clusters.
-Ensure Docker resources include at least 8 GB of memory.
-
-```sh
-docker-compose up -d
-mix test
-```
-
 ## Copyright and License
 
 Copyright (c) 2025 Adobe/Frame.io
