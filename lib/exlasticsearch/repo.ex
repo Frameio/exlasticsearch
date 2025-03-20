@@ -190,9 +190,9 @@ defmodule ExlasticSearch.Repo do
         |> log_response()
         |> mark_failure()
 
-      %{doc: doc} = data ->
+      match?(%{doc: _}, data) ->
         model
-        |> struct(Map.put(doc, :id, id))
+        |> struct(Map.put(data.doc, :id, id))
         |> index(index)
 
       true ->

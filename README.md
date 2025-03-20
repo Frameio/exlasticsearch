@@ -64,7 +64,8 @@ This library requires [Elastix](https://hex.pm/packages/elastix), an Elixir Elas
 config :exlasticsearch, :type_inference, ExlasticSearch.TypeInference
 
 config :exlasticsearch, ExlasticSearch.Repo,
-  url: "http://localhost:9200"
+  url: "http://localhost:9200",
+  json_library: Jason
 ```
 
 ## Testing
