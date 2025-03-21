@@ -8,23 +8,71 @@ defmodule ExlasticSearch.RepoTest do
   alias ExlasticSearch.TestModel
   alias ExlasticSearch.TestModel2
 
+  # setup_all do
+  #   Repo.delete_index(TestModel)
+  #   Repo.create_index(TestModel)
+  #   Repo.create_mapping(TestModel)
+
+  #   Repo.delete_index(TestModel2)
+  #   Repo.create_index(TestModel2)
+  #   Repo.create_mapping(TestModel2)
+
+  #   Repo.delete_index(MVTestModel)
+  #   Repo.create_index(MVTestModel)
+  #   Repo.create_mapping(MVTestModel)
+
+  #   Repo.delete_index(MVTestModel, :read)
+  #   Repo.create_index(MVTestModel, :read)
+  #   Repo.create_mapping(MVTestModel, :read)
+  #   :ok
+  # end
+
+  require Logger
+
   setup_all do
     Repo.delete_index(TestModel)
     Repo.create_index(TestModel)
-    Repo.create_mapping(TestModel)
+    # {:ok, %{status_code: 200}} = Repo.create_mapping(TestModel)
+    check_this_crap(TestModel)
 
     Repo.delete_index(TestModel2)
     Repo.create_index(TestModel2)
-    Repo.create_mapping(TestModel2)
+    # {:ok, %{status_code: 200}} =Repo.create_mapping(TestModel2)
+    check_this_crap(TestModel2)
 
     Repo.delete_index(MVTestModel)
     Repo.create_index(MVTestModel)
-    Repo.create_mapping(MVTestModel)
+    # {:ok, %{status_code: 200}} =Repo.create_mapping(MVTestModel)
+    check_this_crap(MVTestModel)
 
     Repo.delete_index(MVTestModel, :read)
     Repo.create_index(MVTestModel, :read)
-    Repo.create_mapping(MVTestModel, :read)
+    # {:ok, %{status_code: 200}} =Repo.create_mapping(MVTestModel, :read)
+    check_this_crap(MVTestModel, :read)
+
     :ok
+  end
+
+  def check_this_crap(model) do
+    case Repo.create_mapping(model) do
+      {:ok, %{status_code: 200}} ->
+        Logger.info("Created mapping for #{inspect(model)}")
+
+      error ->
+        Logger.error("Failed at creating this mapping for #{inspect(model)}")
+        Logger.error(inspect(error))
+    end
+  end
+
+  def check_this_crap(model, second_param) do
+    case Repo.create_mapping(model, second_param) do
+      {:ok, %{status_code: 200}} ->
+        Logger.info("Created mapping for #{inspect(model)}")
+
+      error ->
+        Logger.error("Failed at creating this mapping for #{inspect(model)} (#{inspect(second_param)})")
+        Logger.error(inspect(error))
+    end
   end
 
   describe "#index" do
