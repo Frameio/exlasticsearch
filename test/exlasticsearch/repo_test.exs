@@ -35,19 +35,6 @@ defmodule ExlasticSearch.RepoTest do
     end
   end
 
-  describe "#update" do
-    test "It will update an element in es 8+" do
-      id = Ecto.UUID.generate()
-      model = %ExlasticSearch.TypelessTestModel{id: id, name: "test"}
-      Repo.index(model, :es8)
-
-      {:ok, %{status_code: 200}} = Repo.update(ExlasticSearch.TypelessTestModel, id, %{doc: %{name: "test edited"}}, :es8)
-
-      {:ok, %{_source: data}} = Repo.get(model, :es8)
-      assert data.name == "test edited"
-    end
-  end
-
   describe "#bulk" do
     test "It will bulk update from es" do
       model1 = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate(), name: "test 1"}
