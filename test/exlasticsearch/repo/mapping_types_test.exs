@@ -275,7 +275,7 @@ defmodule ExlasticSearch.Repo.MappingTypesTest do
       assert Enum.find(results, &(&1._id == id2))
     end
 
-    test "It will search in a multiple indexes" do
+    test "It will search in multiple indexes" do
       id1 = Ecto.UUID.generate()
       id2 = Ecto.UUID.generate()
       id3 = Ecto.UUID.generate()

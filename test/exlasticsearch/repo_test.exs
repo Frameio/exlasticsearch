@@ -6,6 +6,7 @@ defmodule ExlasticSearch.RepoTest do
   alias ExlasticSearch.Repo
   alias ExlasticSearch.TypelessMultiVersionTestModel, as: TypelessMVTestModel
   alias ExlasticSearch.TypelessTestModel
+  alias ExlasticSearch.TypelessTestModel2
 
   require Logger
 
@@ -13,6 +14,10 @@ defmodule ExlasticSearch.RepoTest do
     Repo.delete_index(TypelessTestModel, :es8)
     Repo.create_index(TypelessTestModel, :es8)
     {:ok, %{status_code: 200}} = Repo.create_mapping(TypelessTestModel, :es8)
+
+    Repo.delete_index(TypelessTestModel2, :es8)
+    Repo.create_index(TypelessTestModel2, :es8)
+    {:ok, %{status_code: 200}} = Repo.create_mapping(TypelessTestModel2, :es8)
 
     Repo.delete_index(TypelessMVTestModel, :es8)
     Repo.create_index(TypelessMVTestModel, :es8)
@@ -44,6 +49,62 @@ defmodule ExlasticSearch.RepoTest do
   end
 
   describe "#bulk" do
+    test "It will bulk update from es" do
+      model1 = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate(), name: "test 1"}
+      model2 = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate(), name: "test 2"}
+
+      Repo.index(model1)
+      Repo.index(model2)
+
+      {:ok, _} =
+        Repo.bulk([
+          {:update, ExlasticSearch.TypelessTestModel, model1.id, %{doc: %{name: "test 1 edited"}}},
+          {:update, ExlasticSearch.TypelessTestModel, model2.id, %{doc: %{name: "test 2 edited"}}}
+        ])
+
+      {:ok, %{_source: data1}} = Repo.get(model1)
+      {:ok, %{_source: data2}} = Repo.get(model2)
+
+      assert data1.name == "test 1 edited"
+      assert data2.name == "test 2 edited"
+    end
+
+    test "It will bulk update nested from es" do
+      model1 = %ExlasticSearch.TypelessTestModel{
+        id: Ecto.UUID.generate(),
+        teams: [%{name: "arsenal", rating: 100}]
+      }
+
+      model2 = %ExlasticSearch.TypelessTestModel{
+        id: Ecto.UUID.generate(),
+        teams: [%{name: "tottenham", rating: 0}]
+      }
+
+      Repo.index(model1)
+      Repo.index(model2)
+
+      source =
+        "ctx._source.teams.find(cf -> cf.name == params.data.name).rating = params.data.rating"
+
+      data1 = %{script: %{source: source, params: %{data: %{name: "arsenal", rating: 1000}}}}
+      data2 = %{script: %{source: source, params: %{data: %{name: "tottenham", rating: -1}}}}
+
+      {:ok, _} =
+        Repo.bulk([
+          {:update, ExlasticSearch.TypelessTestModel, model1.id, data1},
+          {:update, ExlasticSearch.TypelessTestModel, model2.id, data2}
+        ])
+
+      {:ok, %{_source: %{teams: [team1]}}} = Repo.get(model1)
+      {:ok, %{_source: %{teams: [team2]}}} = Repo.get(model2)
+
+      assert team1.name == "arsenal"
+      assert team1.rating == 1000
+
+      assert team2.name == "tottenham"
+      assert team2.rating == -1
+    end
+
     test "It will bulk index/delete from es 8+" do
       model = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate()}
       {:ok, _} = Repo.bulk([{:index, model, :es8}], :es8)
@@ -212,6 +273,44 @@ defmodule ExlasticSearch.RepoTest do
       assert length(results) == 2
       assert Enum.find(results, &(&1._id == id1))
       assert Enum.find(results, &(&1._id == id2))
+    end
+
+    test "It will search in multiple indexes" do
+      id1 = Ecto.UUID.generate()
+      id2 = Ecto.UUID.generate()
+      id3 = Ecto.UUID.generate()
+      id4 = Ecto.UUID.generate()
+
+      rand_name = String.replace(Ecto.UUID.generate(), "-", "")
+
+      model1 = %TypelessTestModel{id: id1, name: rand_name}
+      model2 = %TypelessTestModel{id: id2, name: rand_name}
+      model3 = %TypelessTestModel{id: id3, name: "something else"}
+
+      model4 = %TypelessTestModel2{id: id4, name: rand_name}
+
+      Repo.index(model1)
+      Repo.index(model2)
+      Repo.index(model3)
+
+      Repo.index(model4)
+
+      Repo.refresh(TypelessTestModel)
+      Repo.refresh(TypelessTestModel2)
+
+      query = %ExlasticSearch.Query{
+        queryable: [TypelessTestModel, TypelessTestModel2],
+        filter: [
+          %{term: %{name: rand_name}}
+        ]
+      }
+
+      {:ok, %{hits: %{hits: results}}} = Repo.search(query, [])
+
+      assert length(results) == 3
+      assert Enum.find(results, &(&1._id == id1))
+      assert Enum.find(results, &(&1._id == id2))
+      assert Enum.find(results, &(&1._id == id4))
     end
   end
 
