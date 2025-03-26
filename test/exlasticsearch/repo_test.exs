@@ -22,7 +22,6 @@ defmodule ExlasticSearch.RepoTest do
   end
 
   describe "#index" do
-    @tag :elasticsearch8
     test "It will index an element in es 8+" do
       model = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate()}
       {:ok, _} = Repo.index(model, :es8)
@@ -32,7 +31,6 @@ defmodule ExlasticSearch.RepoTest do
   end
 
   describe "#update" do
-    @tag :elasticsearch8
     test "It will update an element in es 8+" do
       id = Ecto.UUID.generate()
       model = %ExlasticSearch.TypelessTestModel{id: id, name: "test"}
@@ -46,7 +44,6 @@ defmodule ExlasticSearch.RepoTest do
   end
 
   describe "#bulk" do
-    @tag :elasticsearch8
     test "It will bulk index/delete from es 8+" do
       model = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate()}
       {:ok, _} = Repo.bulk([{:index, model, :es8}], :es8)
@@ -56,7 +53,6 @@ defmodule ExlasticSearch.RepoTest do
   end
 
   describe "#rotate" do
-    @tag :elasticsearch8
     test "It can deprecate an old index version on es 8+" do
       model = %TypelessMVTestModel{id: Ecto.UUID.generate()}
       {:ok, _} = Repo.index(model, :es8)
@@ -68,7 +64,6 @@ defmodule ExlasticSearch.RepoTest do
   end
 
   describe "#aggregate/2" do
-    @tag :elasticsearch8
     test "It can perform terms aggregations on es 8+" do
       models =
         for i <- 1..3,
@@ -98,7 +93,6 @@ defmodule ExlasticSearch.RepoTest do
       assert Enum.all?(buckets, &(&1["key"] in [1, 2]))
     end
 
-    @tag :elasticsearch8
     test "It can perform top_hits aggregations, even when nested, on es 8+" do
       models =
         for i <- 1..3 do
@@ -139,7 +133,6 @@ defmodule ExlasticSearch.RepoTest do
       assert Enum.all?(buckets, &(!Enum.empty?(get_hits(&1))))
     end
 
-    @tag :elasticsearch8
     test "It can perform composite aggregations on es 8+" do
       models =
         for i <- 1..3 do
@@ -189,7 +182,6 @@ defmodule ExlasticSearch.RepoTest do
   end
 
   describe "#search/2" do
-    @tag :elasticsearch8
     test "It will search in a single index in es 8+" do
       id1 = Ecto.UUID.generate()
       id2 = Ecto.UUID.generate()
