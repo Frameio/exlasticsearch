@@ -9,7 +9,7 @@ defmodule ExlasticSearch do
         use ExlasticSearch.Model
 
         indexes :my_index do
-          settings Application.compile_env(:some, :settings)
+          settings Application.get_env(:some, :settings)
 
           mapping :field
           mapping :other_field, type: :keyword # ecto derived defaults can be overridden
