@@ -39,10 +39,13 @@ defmodule ExlasticSearch.BulkOperation do
   end
 
   defp bulk_operation_update({:update, struct, id, data, index}) do
-    [
-      %{update: %{_id: id, _index: struct.__es_index__(index), _type: struct.__doc_type__()}},
-      data
-    ]
+    op = %{_id: id, _index: struct.__es_index__(index)}
+
+    if doc_type = struct.__doc_type__(),
+      do: Map.put(op, :_type, doc_type),
+      else: op
+
+    [%{update: op}, data]
   end
 
   defp bulk_operation_delete({:delete, %{__struct__: model} = struct, index}) do

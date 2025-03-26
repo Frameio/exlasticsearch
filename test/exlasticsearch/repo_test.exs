@@ -89,7 +89,7 @@ defmodule ExlasticSearch.RepoTest do
       data1 = %{script: %{source: source, params: %{data: %{name: "arsenal", rating: 1000}}}}
       data2 = %{script: %{source: source, params: %{data: %{name: "tottenham", rating: -1}}}}
 
-      {:ok, _} =
+      {:ok, %{status_code: 200}} =
         Repo.bulk([
           {:update, ExlasticSearch.TypelessTestModel, model1.id, data1},
           {:update, ExlasticSearch.TypelessTestModel, model2.id, data2}

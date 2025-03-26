@@ -182,22 +182,11 @@ defmodule ExlasticSearch.Repo do
   """
   @decorate retry()
   def update(model, id, data, index \\ :index) do
-    cond do
-      doc_type = model.__doc_type__() ->
-        index
-        |> es_url()
-        |> Document.update(model.__es_index__(index), doc_type, id, data)
-        |> log_response()
-        |> mark_failure()
-
-      match?(%{doc: _}, data) ->
-        model
-        |> struct(Map.put(data.doc, :id, id))
-        |> index(index)
-
-      true ->
-        {:error, "ExlasticSearch only supports doc updates for ES 8+"}
-    end
+    index
+    |> es_url()
+    |> Document.update(model.__es_index__(index), model.__doc_type__(), id, data)
+    |> log_response()
+    |> mark_failure()
   end
 
   @doc """
