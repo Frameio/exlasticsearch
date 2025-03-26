@@ -29,7 +29,7 @@ defmodule ExlasticSearch.RepoTest do
   describe "#index" do
     test "It will index an element in es 8+" do
       model = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate()}
-      {:ok, _} = Repo.index(model, :es8)
+      {:ok, %{status_code: 201}} = Repo.index(model, :es8)
 
       assert exists?(model, :es8)
     end
@@ -41,7 +41,7 @@ defmodule ExlasticSearch.RepoTest do
       model = %ExlasticSearch.TypelessTestModel{id: id, name: "test"}
       Repo.index(model, :es8)
 
-      {:ok, _} = Repo.update(ExlasticSearch.TypelessTestModel, id, %{doc: %{name: "test edited"}}, :es8)
+      {:ok, %{status_code: 200}} = Repo.update(ExlasticSearch.TypelessTestModel, id, %{doc: %{name: "test edited"}}, :es8)
 
       {:ok, %{_source: data}} = Repo.get(model, :es8)
       assert data.name == "test edited"
@@ -56,7 +56,7 @@ defmodule ExlasticSearch.RepoTest do
       Repo.index(model1)
       Repo.index(model2)
 
-      {:ok, _} =
+      {:ok, %{status_code: 200}} =
         Repo.bulk([
           {:update, ExlasticSearch.TypelessTestModel, model1.id, %{doc: %{name: "test 1 edited"}}},
           {:update, ExlasticSearch.TypelessTestModel, model2.id, %{doc: %{name: "test 2 edited"}}}
@@ -107,7 +107,7 @@ defmodule ExlasticSearch.RepoTest do
 
     test "It will bulk index/delete from es 8+" do
       model = %ExlasticSearch.TypelessTestModel{id: Ecto.UUID.generate()}
-      {:ok, _} = Repo.bulk([{:index, model, :es8}], :es8)
+      {:ok, %{status_code: 200}} = Repo.bulk([{:index, model, :es8}], :es8)
 
       assert exists?(model, :es8)
     end
@@ -116,7 +116,7 @@ defmodule ExlasticSearch.RepoTest do
   describe "#rotate" do
     test "It can deprecate an old index version on es 8+" do
       model = %TypelessMVTestModel{id: Ecto.UUID.generate()}
-      {:ok, _} = Repo.index(model, :es8)
+      {:ok, %{status_code: 201}} = Repo.index(model, :es8)
 
       Repo.rotate(TypelessMVTestModel, :read, :es8)
 
@@ -130,7 +130,7 @@ defmodule ExlasticSearch.RepoTest do
         for i <- 1..3,
             do: %TypelessTestModel{id: Ecto.UUID.generate(), name: "name #{i}", age: i}
 
-      {:ok, _} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
+      {:ok, %{status_code: 200}} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
 
       Repo.refresh(TypelessTestModel, :es8)
 
@@ -165,7 +165,7 @@ defmodule ExlasticSearch.RepoTest do
           }
         end
 
-      {:ok, _} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
+      {:ok, %{status_code: 200}} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
 
       Repo.refresh(TypelessTestModel, :es8)
 
@@ -205,7 +205,7 @@ defmodule ExlasticSearch.RepoTest do
           }
         end
 
-      {:ok, _} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
+      {:ok, %{status_code: 200}} = models |> Enum.map(&{:index, &1, :es8}) |> Repo.bulk(:es8)
 
       Repo.refresh(TypelessTestModel, :es8)
 
@@ -254,9 +254,9 @@ defmodule ExlasticSearch.RepoTest do
       model2 = %TypelessTestModel{id: id2, name: rand_name}
       model3 = %TypelessTestModel{id: id3, name: "something else"}
 
-      Repo.index(model1, :es8)
-      Repo.index(model2, :es8)
-      Repo.index(model3, :es8)
+      {:ok, %{status_code: 201}} = Repo.index(model1, :es8)
+      {:ok, %{status_code: 201}} = Repo.index(model2, :es8)
+      {:ok, %{status_code: 201}} = Repo.index(model3, :es8)
 
       Repo.refresh(TypelessTestModel, :es8)
 
@@ -289,14 +289,14 @@ defmodule ExlasticSearch.RepoTest do
 
       model4 = %TypelessTestModel2{id: id4, name: rand_name}
 
-      Repo.index(model1)
-      Repo.index(model2)
-      Repo.index(model3)
+      {:ok, %{status_code: 201}} = Repo.index(model1)
+      {:ok, %{status_code: 201}} = Repo.index(model2)
+      {:ok, %{status_code: 201}} = Repo.index(model3)
 
-      Repo.index(model4)
+      {:ok, %{status_code: 201}} = Repo.index(model4)
 
-      Repo.refresh(TypelessTestModel)
-      Repo.refresh(TypelessTestModel2)
+      {:ok, %{status_code: 200}} = Repo.refresh(TypelessTestModel)
+      {:ok, %{status_code: 200}} = Repo.refresh(TypelessTestModel2)
 
       query = %ExlasticSearch.Query{
         queryable: [TypelessTestModel, TypelessTestModel2],
