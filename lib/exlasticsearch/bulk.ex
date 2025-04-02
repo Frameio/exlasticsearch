@@ -22,33 +22,46 @@ defmodule ExlasticSearch.BulkOperation do
   def bulk_operation({op_type, struct}), do: bulk_operation_default({op_type, struct, :index})
 
   defp bulk_operation_default({op_type, %{__struct__: model} = struct, index}) do
+    op = %{
+      _id: Indexable.id(struct),
+      _index: model.__es_index__(index)
+    }
+
+    op =
+      if doc_type = model.__doc_type__(),
+        do: Map.put(op, :_type, doc_type),
+        else: op
+
     [
-      %{
-        op_type => %{
-          _id: Indexable.id(struct),
-          _index: model.__es_index__(index),
-          _type: model.__doc_type__()
-        }
-      },
+      %{op_type => op},
       build_document(struct, index)
     ]
   end
 
   defp bulk_operation_update({:update, struct, id, data, index}) do
-    [
-      %{update: %{_id: id, _index: struct.__es_index__(index), _type: struct.__doc_type__()}},
-      data
-    ]
+    op = %{_id: id, _index: struct.__es_index__(index)}
+
+    if doc_type = struct.__doc_type__(),
+      do: Map.put(op, :_type, doc_type),
+      else: op
+
+    [%{update: op}, data]
   end
 
   defp bulk_operation_delete({:delete, %{__struct__: model} = struct, index}) do
+    op = %{
+      _id: Indexable.id(struct),
+      _index: model.__es_index__(index)
+    }
+
+    op =
+      if doc_type = model.__doc_type__(),
+        do: Map.put(op, :_type, doc_type),
+        else: op
+
     [
       %{
-        delete: %{
-          _id: Indexable.id(struct),
-          _index: model.__es_index__(index),
-          _type: model.__doc_type__()
-        }
+        delete: op
       }
     ]
   end

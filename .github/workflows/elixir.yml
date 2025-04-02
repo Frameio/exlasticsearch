@@ -23,9 +23,18 @@ jobs:
         include:
           - elixir: "1.15"
             otp: "25"
+            elasticsearch: "7.17.16"
+            include_tags: ""
           - elixir: "1.18"
             otp: "27"
             lint: true
+            elasticsearch: "7.17.16"
+            include_tags: ""
+          - elixir: "1.18"
+            otp: "27"
+            lint: true
+            elasticsearch: "8.13.4"
+            include_tags: "--exclude mapping_types"
     steps:
       - name: Configure sysctl limits
         run: |
@@ -37,7 +46,7 @@ jobs:
       - name: Runs Elasticsearch
         uses: elastic/elastic-github-actions/elasticsearch@master
         with:
-          stack-version: 7.17.16
+          stack-version: ${{matrix.elasticsearch}}
           security-enabled: false
 
       - name: Checkout code
@@ -63,7 +72,7 @@ jobs:
         run: mix compile --warnings-as-errors
         
       - name: Run tests
-        run: mix test
+        run: mix test ${{matrix.include_tags}}
         
       - name: checks that the mix.lock file has no unused deps 
         run: mix deps.unlock --check-unused
