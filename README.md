@@ -15,7 +15,7 @@ response formatting and the like.
 ```elixir
 def deps do
   [
-    {:exlasticsearch, "~> 2.2.4"}
+    {:exlasticsearch, "~> 2.3.0"}
   ]
 end
 ```
